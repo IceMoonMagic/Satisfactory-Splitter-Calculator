@@ -1,0 +1,43 @@
+MAX_MERGE: 3    # Currently Useless, will limit mergers
+MAX_SPLIT: 3    # Max Number of splits on a splitter, only used on the first step currently
+NODE_ATTR:      # Attributes to give each type of node on the graph.
+    Source:     # https://graphviz.org/doc/info/shapes.html
+        shape: house
+    Destination:
+        shape: invhouse
+    Splitter:
+        shape: diamond
+    Uneven Splitter:
+        shape: Mdiamond
+    Merger:
+        shape: square
+    Pass Through:
+        shape: point
+    Island: {}
+    Source Splitter: {}
+    Merger Destination:
+        shape: Msquare
+    Merge Splitter: {}
+
+ENGINE: dot     # https://graphviz.org/docs/layouts/
+FORMAT: png     # https://graphviz.org/docs/outputs/ | defaults to PDF
+
+
+GRAPH_ATTR:
+    splines: ortho  # Make lines right angles. Ortho sometimes fails, in which case it's set to polyline
+
+BELTS:  # Amounts that can be siphoned off of the main line in the first step
+    - 60
+    - 120
+    - 270
+    - 480
+    - 780
+MK: 5   # Highest Belt allowed, kind of redundant. Set to 0 to disable.
+
+DIRECTORY: 'examples'   # Directory to save files to. (Creates a PDF and .gv)
+---
+Calculate: 1to3
+Save Nodes: No
+---
+- 1
+- 3
