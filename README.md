@@ -64,15 +64,12 @@ Squares are mergers. Currently, a chain of mergers will be condensed into a sing
 
 Some examples:
 
-[Graph for 1:3](examples/1to3.gv.png)
+![Graph for 1:3](examples/1to3.gv.png)
+![Graph for 60:15](examples/60to15.gv.png)
+![Graph for even split between 15](examples/even15.gv.png)
+![Graph for 33 1/3 : 5 1/8](examples/33.3333to5.125.gv.png)
 
-[Graph for 60:15](examples/60to15.gv.png)
-
-[Graph for even split between 15](examples/15.gv.png)
-
-[Graph for 33 1/3 : 5 1/8](examples/33.3333to5.125)
-
-It is likely still not perfect and I *highly* recommend checking that 1) Sum of inputs match sum of inputs 2) Inputs and outputs are what you expect.
+It is likely still not perfect and I *highly* recommend checking that the sum of the inputs match the sum of the outputs and that the inputs and outputs are what you expect.
 
 There is currently a known bug where the splitters siphoning of x amount of items are getting deleted during simplification, therefore causing the output to be wrong. 
 In that case, try removing it manually and/or setting MK to 0. You can get how much it's trying to take off by calling the fraction_smart_ratio() in a python console. (`python` or `python -i conveyor_nodes.py`)
