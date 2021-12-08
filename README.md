@@ -3,15 +3,15 @@
 A tool to help calculate how to split conveyors in Satisfactory into specific ratios.
 
 ## Dependencies
-[Python 3.9](https://python.org) (probably works on 3.6+)
+[Python 3.9](https://python.org)
 
 [PyYAML](https://pypi.org/project/PyYAML/)
 
-[Python Graphviz](https://pypi.org/project/PyYAML/) (Note: Requires Graphviz, more details on pypi.
+[Python Graphviz](https://pypi.org/project/PyYAML/) (Note: Requires actual Graphviz, more details on pypi.)
 
 ## Usage
 
-Run run `conveyor_nodes.py` with a YAML file as the first argument.
+Run `conveyor_nodes.py` with a YAML file as the first argument.
 ```bash
 python conveyor_nodes.py my_yaml.yaml
 ```
@@ -23,7 +23,7 @@ The YAML File is broken into multiple parts, broken up by `---`. The first is th
 The second section is where you put what it is going to do. There are currently only three things that can go in here.
 ```yaml
 Calculate: output_filename    # This tell it to calculate the values in the next section and output to output_filename.
-Save Nodes: Yes    # If the Calculate is present, will additionally save to output_filename.yaml all the nodes used for the output.
+Save Nodes: Yes    # If Calculate is present, will additionally save to output_filename.yaml all the nodes used for the output.
 Graph: output_filename    # This will try reloading nodes from the next section. Automatically set in file created by Save Nodes.
 ```
 
@@ -66,20 +66,17 @@ Some examples:
 
 ![Graph for 1:3](examples/1to3.gv.png)
 ![Graph for 60:15](examples/60to15.gv.png)
+![Graph for 10:45:60](examples/10to45to60.gv.png)
 ![Graph for even split between 15](examples/even15.gv.png)
 ![Graph for 33 1/3 : 5 1/8](examples/33.3333to5.125.gv.png)
 
-It is likely still not perfect and I *highly* recommend checking that the sum of the inputs match the sum of the outputs and that the inputs and outputs are what you expect.
-
-There is currently a known bug where the splitters siphoning of x amount of items are getting deleted during simplification, therefore causing the output to be wrong. 
-In that case, try removing it manually and/or setting MK to 0. You can get how much it's trying to take off by calling the fraction_smart_ratio() in a python console. (`python` or `python -i conveyor_nodes.py`)
-
+It is likely still not perfect and I recommend checking that it makes sense. Mainly the sum of the inputs match the sum of the outputs and that the inputs and outputs are what you expect.
 
 ## Planned Additions & Contributing
 There's only two more things I'm really considering adding to this project. Those being 1) Being able to set how many belts can converge on one merger, and 2) Being able to take N inputs to M outputs.
 Besides that and polishing, I don't plan to do anything else.
 
-I don't really have experience collaborating through GitHub but you are welcome to submit a pull request. Good luck though, I tried keeping it clean, but some places are better than others and documentation / comments still need some work. (I'll get to it eventually (probably)).
+I don't really have experience collaborating through GitHub, but you are welcome to submit a pull request. Good luck though, I tried keeping it clean, but some places are better than others and documentation / comments still need some work. (I'll get to it eventually (probably)).
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)

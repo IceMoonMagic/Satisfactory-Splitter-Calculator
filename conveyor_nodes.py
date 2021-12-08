@@ -390,7 +390,8 @@ def fraction_smart_ratio(*targets: Union[int, List[int], Tuple[int]],
     '''The raw values being ratio-ed'''
     best_targets = list(fractions)
     '''Simplified ratio by going through ratio()'''
-    best_ratio = fraction_ratio(*fractions, fractions_done=True)
+    best_ratio = fraction_ratio(*[i.copy() for i in fractions],
+                                fractions_done=True)
     '''Lower is better, sum of output from ratio() with additional penalty'''
     best_score = sum(best_ratio)
     '''How to subtract from each each out to get the best ratio.'''
@@ -419,6 +420,7 @@ def fraction_smart_ratio(*targets: Union[int, List[int], Tuple[int]],
                     test_ratio = [0] * len(test_targets)
                     penalty -= 1
                 test_score = sum(test_ratio) + ((penalty + 1) // 2 * 2)
+                print(test_splits, test_ratio, test_score)
                 # Replace Best variables if better
                 if test_score < best_score:
                     best_targets = test_targets
@@ -514,6 +516,7 @@ def smart_split(root_node: ConveyorNode, remove_splits: List[List[float]],
                 new_root.link_to(next_root, new_root.holding)
                 new_root = next_root
                 these_nodes.append(next_out)
+
         if len(these_nodes) == 0:
             simp_nodes.append(ConveyorNode())
         elif len(these_nodes) == 1:
@@ -530,7 +533,9 @@ def smart_split(root_node: ConveyorNode, remove_splits: List[List[float]],
         if len(simp_nodes) != len(out_nodes):
             raise ValueError
         for true_out, almost_out in zip(simp_nodes, out_nodes):
-            true_out.link_from(almost_out)
+            spacer = ConveyorNode()
+            true_out.link_to(spacer)
+            spacer.link_from(almost_out)
 
 
 def simplify_graph(start_nodes: Set[ConveyorNode]) \
