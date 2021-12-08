@@ -54,6 +54,8 @@ Otherwise, put in how much to give to each output and put floats / decimals in a
 - 12
 ```
 
+Can also be a JSON if it follows the sections being elements in a list, and it's filename ends with `.json`
+
 ## Output
 Output is done with a Graphviz Digraph. From each node, there is an arrow pointing to where it goes. The arrow should be labeled, but it may be hard on some outputs to associate a number with a node.
 When graphing, nodes are displayed in a few different ways depending on what it represents.

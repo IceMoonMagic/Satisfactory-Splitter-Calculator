@@ -820,7 +820,7 @@ if __name__ == '__main__':
                     raise TypeError(
                         f'If only one value is provided, it has to be an '
                         f'int, got {num[0]}, which could not be cast to an '
-                        f'int without loosing {num[0]-int(num[0])}.)')
+                        f'int without loosing {num[0] - int(num[0])}.)')
             elif isinstance(num[0], int):
                 even_split(to_node, num[0])
             else:
@@ -835,7 +835,13 @@ if __name__ == '__main__':
 
     def main_yaml(yaml_file):
         with open(yaml_file) as file:
-            settings = yaml.safe_load_all(file)
+            if yaml_file.lower().endswith('.json'):
+                settings = iter(yaml.safe_load(file))
+            elif yaml_file.lower().endswith('.yaml') or \
+                    yaml_file.lower().endswith('.yml'):
+                settings = yaml.safe_load_all(file)
+            else:
+                raise IOError('Unrecognized File Type')
 
             config = next(settings)
             global MAX_MERGE, MAX_SPLIT
