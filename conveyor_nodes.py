@@ -1,64 +1,48 @@
-import decimal
 import math
-from typing import Union, List, Dict, Set, Tuple
-from operator import itemgetter
+from decimal import Decimal
+from fractions import Fraction
 from sys import argv
-
-import graphviz as gv  # https://pypi.org/project/graphviz/
-import yaml  # https://pypi.org/project/PyYAML/
-
-ENGINE = 'dot'
-FORMAT = 'pdf'
-NODE_ATTR = {'Island': {},
-             'Source': {'shape': 'house'},
-             'Source Splitter': {},
-             'Destination': {'shape': 'invhouse'},
-             'Pass Through': {'shape': 'point'},
-             'Splitter': {'shape': 'diamond'},
-             'Merger Destination': {'shape': 'Msquare'},
-             'Merger': {'shape': 'square'},
-             'Merge Splitter': {},
-             'Uneven Splitter': {'shape': 'Mdiamond'}}
-GRAPH_ATTR = {'splines': 'ortho'}
-MAX_MERGE = MAX_SPLIT = 3
-LIMIT_MERGING = False
-BELTS = [60, 120, 270, 480, 780]
-MK = 5
-DIRECTORY = r'/tmp/ratio'
+from typing import Union, List, Dict, Set, Tuple
 
 
-class ConveyorNode(yaml.YAMLObject):
-    yaml_tag = u'!LogisticNode'
-    yaml_loader = yaml.YAMLObject.yaml_loader + [yaml.SafeLoader]
-    yaml_dumper = yaml.SafeDumper
+class ConveyorNode:
+    NODE_TYPES = {(0, 0): 'Island',
+                  (0, 1): 'Source',
+                  (0, 2): 'Source Splitter',
+                  (1, 0): 'Destination',
+                  (1, 1): 'Pass Through',
+                  (1, 2): 'Splitter',
+                  (2, 0): 'Merger Destination',
+                  (2, 1): 'Merger',
+                  (2, 2): 'Merge Splitter'}
 
     DECIMALS = 4
 
-    def __init__(self, holding: float = 0, display_multi: float = 1, *,
-                 display: str = None):
-        self.display = display
-        self.multi = display_multi
+    def __init__(self, holding: Fraction = 0):
+        # self.display = display
+        # self.multi = display_multi
         self.holding = holding
 
         '''Form: {Other Node: 
                     {Transfer Rate: Num of Links w/ Transfer Rate}}'''
         self.ins = {}
         self.outs = {}
+        self.depth = 0
 
-    def __str__(self) -> str:
-        if self.display is not None:
-            return self.display
-        else:
-            return format_float(self.holding * self.multi)
+    # def __str__(self) -> str:
+    #     if self.display is not None:
+    #         return self.display
+    #     else:
+    #         return format_float(self.holding * self.multi)
+    #
+    # def __repr__(self) -> str:
+    #     return f'{self.in_links} -> {self.out_links}, {self.holding}' \
+    #            f' | {id(self)}'
 
-    def __repr__(self) -> str:
-        return f'{self.in_links} -> {self.out_links}, {self.holding}' \
-               f' | {id(self)}'
-
-    def link_from(self, src: "ConveyorNode", carrying: float = None):
+    def link_from(self, src: "ConveyorNode", carrying: Fraction = None):
         self.link(src, self, carrying)
 
-    def unlink_from(self, src: "ConveyorNode", carrying: float = None):
+    def unlink_from(self, src: "ConveyorNode", carrying: Fraction = None):
         self.unlink(src, self, carrying)
 
     def unlink_from_all(self):
@@ -67,10 +51,10 @@ class ConveyorNode(yaml.YAMLObject):
                 for _ in range(count):
                     self.unlink_from(src, carrying)
 
-    def link_to(self, dst: "ConveyorNode", carrying: float = None):
+    def link_to(self, dst: "ConveyorNode", carrying: Fraction = None):
         self.link(self, dst, carrying)
 
-    def unlink_to(self, dst: "ConveyorNode", carrying: float = None):
+    def unlink_to(self, dst: "ConveyorNode", carrying: Fraction = None):
         self.unlink(self, dst, carrying)
 
     def unlink_to_all(self):
@@ -80,7 +64,8 @@ class ConveyorNode(yaml.YAMLObject):
                     self.unlink_to(dst, carrying)
 
     @staticmethod
-    def link(src: "ConveyorNode", dst: "ConveyorNode", carrying: float = None):
+    def link(src: "ConveyorNode", dst: "ConveyorNode",
+             carrying: Fraction = None):
         """Make a link from src to dst with given a carry rate."""
         carrying = carrying if carrying is not None else src.splittable
         # If there are no connections between src and dst
@@ -97,9 +82,15 @@ class ConveyorNode(yaml.YAMLObject):
         src.holding -= carrying
         dst.holding += carrying
 
+        # Adjust dst node's depth
+        if dst.in_links <= 1:
+            dst.depth = src.depth + 1
+        else:
+            dst.depth = min(src.depth + 1, dst.depth)
+
     @staticmethod
     def unlink(src: "ConveyorNode", dst: "ConveyorNode",
-               carrying: float = None):
+               carrying: Fraction = None):
         """Remove a link from src to dst with given a carry rate."""
         if dst not in src.outs:
             raise ValueError(f'`src` and `dst` are not linked.')
@@ -129,22 +120,30 @@ class ConveyorNode(yaml.YAMLObject):
         src.holding += carrying
         dst.holding -= carrying
 
-    @staticmethod
-    def links_str(connections: dict, indent: int = 0) -> str:
-        string = ''
-        upper_indent = '\t' * indent
-        lower_indent = upper_indent + '\t'
-        for node, links in connections.items():
-            string += f'{upper_indent}{node}:\n'
-            for carrying, num_of_links in links.items():
-                string += f'{lower_indent}{format_float(carrying)} (' \
-                          f'{num_of_links} times)'
-        return string
+        # Adjust dst node's depth
+        if dst.depth == src.depth + 1:
+            if dst.in_links > 0:
+                dst.depth = min([in_node.depth + 1 for in_node in dst.ins])
+            else:
+                dst.depth = 0
+                print('doubtful', dst.in_links)
+
+    # @staticmethod
+    # def links_str(connections: dict, indent: int = 0) -> str:
+    #     string = ''
+    #     upper_indent = '\t' * indent
+    #     lower_indent = upper_indent + '\t'
+    #     for node, links in connections.items():
+    #         string += f'{upper_indent}{node}:\n'
+    #         for carrying, num_of_links in links.items():
+    #             string += f'{lower_indent}{format_float(carrying)} (' \
+    #                       f'{num_of_links} times)'
+    #     return string
 
     @staticmethod
-    def _sum_connections(foo: dict, factor_carrying: bool = False):
+    def _sum_connections(connections: dict, factor_carrying: bool = False):
         total = 0
-        for _node, links in foo.items():
+        for _node, links in connections.items():
             for carrying, num_of_links in links.items():
                 if factor_carrying:
                     total += num_of_links * carrying
@@ -163,12 +162,12 @@ class ConveyorNode(yaml.YAMLObject):
         return self._sum_connections(self.outs)
 
     @property
-    def sum_ins(self) -> float:
-        return self._sum_connections(self.ins, True)
+    def sum_ins(self) -> Fraction:
+        return Fraction(Decimal(str(self._sum_connections(self.ins, True))))
 
     @property
-    def sum_outs(self) -> float:
-        return self._sum_connections(self.outs, True)
+    def sum_outs(self) -> Fraction:
+        return Fraction(Decimal(str(self._sum_connections(self.outs, True))))
 
     @property
     def splits_evenly(self) -> bool:
@@ -180,15 +179,15 @@ class ConveyorNode(yaml.YAMLObject):
         return True
 
     @property
-    def splittable(self) -> float:
+    def splittable(self) -> Fraction:
         if self.out_links > 0:
             links = next(iter(self.outs.values()))
             return next(iter(links))
         return self.holding
 
-    def split_into(self, r) -> float:
+    def split_into(self, r) -> Fraction:
         if self.holding == 0:
-            return 0
+            return Fraction()
         if self.out_links > 0:
             return self.splittable
         return self.holding / r
@@ -197,33 +196,80 @@ class ConveyorNode(yaml.YAMLObject):
     def id(self) -> str:
         return str(id(self))
 
+    @property
+    def node_type(self) -> str:
+        node_type = (min(len(self.ins), 2),
+                     min(len(self.outs), 2))
+        if node_type == (1, 2) and not self.splits_evenly:
+            return 'Uneven Splitter'
+        return self.NODE_TYPES[node_type]
+
+    @classmethod
+    def to_json(cls, start_nodes: set) -> \
+            Tuple[Dict[int, Dict[str, Union[int, float, str]]],
+                  List[List[int]]]:
+        all_nodes = {}
+        all_edges = []
+
+        # Some sets for faster `in` checks.
+        found_nodes = set()
+        found_edges = set()
+
+        def find_nodes(curr_node: ConveyorNode):
+            if curr_node in found_nodes:
+                return
+            all_nodes[id(curr_node)] = \
+                {'in sum': curr_node.sum_ins.as_integer_ratio(),
+                 'out sum': curr_node.sum_outs.as_integer_ratio(),
+                 'in links': curr_node.in_links,
+                 'out links': curr_node.out_links,
+                 'depth': curr_node.depth,
+                 'type': curr_node.node_type}
+
+            found_nodes.add(curr_node)
+
+            for to_node, links in curr_node.outs.items():
+                if (curr_node, to_node) in found_edges:
+                    continue
+                found_edges.add((curr_node, to_node))
+                for carrying, times in links.items():
+                    for _ in range(times):
+                        all_edges.append([str(id(curr_node)),
+                                          str(id(to_node)),
+                                          carrying.as_integer_ratio()])
+                find_nodes(to_node)
+
+        for start_node in start_nodes:
+            find_nodes(start_node)
+
+        return all_nodes, all_edges
+
 
 def format_float(num, max_dec=4) -> str:
+    if isinstance(num, Fraction):
+        return f'{float(num):.{max_dec}f}'.rstrip('0').rstrip('.')
     return f'{num:.{max_dec}f}'.rstrip('0').rstrip('.')
 
 
-def to_fraction(value: Union[int, List[int], Tuple[int]]) -> List[int]:
+def to_fraction(value: Union[int, List[int], Tuple[int]]) -> Fraction:
     """Standardizes the numbers into a [numerator, denominator] 'fraction'."""
-    if isinstance(value, int):
-        return [value, 1]
-    elif isinstance(value, float):
-        print('This may not end well...')
-        # Will likely cause a ratio of obscene size, which will eventually fail
-        # due to a recursion error.
-        return list(value.as_integer_ratio())
+    if isinstance(value, (int, float)):
+        return Fraction(value)
     elif not isinstance(value, (tuple, list)):
         raise TypeError('Targets should an int, float, or tuple/list of 1 to '
                         f'3 elements, got {type(value)}.')
     elements = len(value)
-    if elements == 1:
-        return [value[0], 1]
-    elif elements == 2:
-        return list(value)
+    # if elements == 1:
+    #     return [value[0], 1]
+    # elif elements == 2:
+    #     return list(value)
+    if 1 <= elements <= 2:
+        return Fraction(*value)
     elif elements == 3:
         whole = value[0]
         num = value[1]
         den = value[2]
-        return [whole * den + num, den]
+        return Fraction(whole * den + num, den)
     else:
         raise ValueError('Targets should an int, float, or tuple/list of 1 to '
                          f'3 elements, got {elements}.')
@@ -231,7 +277,9 @@ def to_fraction(value: Union[int, List[int], Tuple[int]]) -> List[int]:
 
 def from_fraction(value: Union[int, float, List[int], Tuple[int]]) -> float:
     """Returns the actual value of the 'fraction' that was given."""
-    if isinstance(value, (int, float)):
+    if isinstance(value, Fraction):
+        return float(value)
+    elif isinstance(value, (int, float)):
         return value
     elif not isinstance(value, (tuple, list)):
         raise TypeError('Targets should an int or tuple/list of 1 to '
@@ -251,39 +299,10 @@ def from_fraction(value: Union[int, float, List[int], Tuple[int]]) -> float:
                          f'3 elements, got {elements}.')
 
 
-def ratio(*targets: Union[float, int]) -> List[int]:
-    """Simplifies the targets into integers, keeping the given ratio."""
-    out = list(targets)
-
-    # Determine how to simplify to all integers
-    decimals = 0
-    for r in targets:
-        t = decimal.Decimal(str(r)).as_tuple().exponent
-        decimals = t if t < decimals else decimals
-    decimals *= -1  # abs(decimals)
-    if decimals < 0:
-        raise RuntimeError(f'`decimals` somehow ended up negative, {targets}')
-
-    # Multiplies all args to keep ratio but make ints
-    for i, r in enumerate(targets):
-        out[i] = int(r * (10 ** decimals))
-
-    # Calculate the greatest common factory and divide everything by it.
-    divide = math.gcd(*out)
-    for i, r in enumerate(out):
-        out[i] = r // divide
-    return out
-
-
-def fraction_ratio(*targets: Union[int, List[int], Tuple[int]],
-                   fractions_done: bool = False) -> List[int]:
+def ratio(*targets: Fraction) -> List[int]:
     #  --- Set Up Fractions ---
-    fractions = []  # [[Numerator, Denominator], [...], ...]
-    if fractions_done:
-        fractions = list(targets)
-    else:
-        for fraction in targets:
-            fractions.append(to_fraction(fraction))
+    # Can't use normal fractions as they auto-reduce.
+    fractions = [list(f.as_integer_ratio()) for f in targets]
 
     #  --- Calculate Least Common Denominator ---
     lcd = math.lcm(*[f[1] for f in fractions])
@@ -309,16 +328,15 @@ def fraction_ratio(*targets: Union[int, List[int], Tuple[int]],
     return [f[0] for f in fractions]
 
 
-def smart_ratio(*targets: int, mk: int = 5, alt_belts: list = None) -> \
+def smart_ratio(*targets: Fraction,
+                mk: int = 5, alt_belts: list = None) -> \
         Dict[str, List[float]]:
-    """
-    Tries to find the best ratio by removing full belts beforehand.
+    # #  --- Set Up Fractions ---
+    # fractions = []
+    # for fraction in targets:
+    #     fractions.append(to_fraction(fraction))
 
-    :param targets: What the desired outputs are.
-    :param mk: Highest available MK of belt in (from base game).
-    :param alt_belts: Allows custom belt removal amounts. Overrides mk.
-    :return: dict with calculated targets, ratio, and how to get them.
-    """
+    #  --- Set Up Additional Variables ---
     belts = alt_belts.sort() if alt_belts else [60, 120, 270, 480, 780][:mk]
 
     '''Best way to simplify the ratio, defaults to doing nothing'''
@@ -331,6 +349,7 @@ def smart_ratio(*targets: int, mk: int = 5, alt_belts: list = None) -> \
     '''How to subtract from each each out to get the best ratio.'''
     best_splits = [[] for _ in targets]
 
+    # --- Recursive Function ---
     def _smart_ratio(new_targets: list, divider: int,
                      new_splits: list, penalty: int):
         """Should test every combination of removing a full belt for ratios."""
@@ -352,75 +371,7 @@ def smart_ratio(*targets: int, mk: int = 5, alt_belts: list = None) -> \
                     test_ratio = [0] * len(test_targets)
                     penalty -= 1
                 test_score = sum(test_ratio) + ((penalty + 1) // 2 * 2)
-                # Replace Best variables if better
-                if test_score < best_score:
-                    best_targets = test_targets
-                    best_ratio = test_ratio
-                    best_score = test_score
-                    best_splits = [i.copy() for i in test_splits]
-
-                # Try removing more, then try removing a different amount
-                _smart_ratio(test_targets, divider, test_splits, penalty + 1)
-            else:
-                break
-        if divider + 1 < len(new_targets):
-            # Move on to the next output
-            _smart_ratio(new_targets, divider + 1, new_splits, penalty)
-
-    # Calculate
-    _smart_ratio(list(targets), 0, best_splits, 0)
-
-    # Output
-    return {'remove': best_splits, 'targets': best_targets,
-            'ratio': best_ratio}
-
-
-def fraction_smart_ratio(*targets: Union[int, List[int], Tuple[int]],
-                         mk: int = 5, alt_belts: list = None) -> \
-        Dict[str, List[float]]:
-    #  --- Set Up Fractions ---
-    fractions = []
-    for fraction in targets:
-        fractions.append(to_fraction(fraction))
-
-    #  --- Set Up Additional Variables ---
-    belts = alt_belts.sort() if alt_belts else [60, 120, 270, 480, 780][:mk]
-
-    '''Best way to simplify the ratio, defaults to doing nothing'''
-    '''The raw values being ratio-ed'''
-    best_targets = list(fractions)
-    '''Simplified ratio by going through ratio()'''
-    best_ratio = fraction_ratio(*[i.copy() for i in fractions],
-                                fractions_done=True)
-    '''Lower is better, sum of output from ratio() with additional penalty'''
-    best_score = sum(best_ratio)
-    '''How to subtract from each each out to get the best ratio.'''
-    best_splits = [[] for _ in fractions]
-
-    # --- Recursive Function ---
-    def _smart_ratio(new_targets: list, divider: int,
-                     new_splits: list, penalty: int):
-        """Should test every combination of removing a full belt for ratios."""
-        nonlocal best_targets, best_ratio, best_score, best_splits
-        for belt in belts:
-            if new_targets[divider][0] / new_targets[divider][1] >= belt:
-                # --- Setup Test Variables ---
-                # Record how much is removed
-                test_splits = [i.copy() for i in new_splits]  # needs deep copy
-                test_splits[divider].append(belt)
-                # Remove from belt
-                test_targets = [i.copy() for i in new_targets]
-                test_targets[divider][0] -= belt * test_targets[divider][1]
-
-                # --- Test Ratio ---
-                if sum([i[0] for i in test_targets]) != 0:
-                    test_ratio = fraction_ratio(*test_targets,
-                                                fractions_done=True)
-                else:
-                    test_ratio = [0] * len(test_targets)
-                    penalty -= 1
-                test_score = sum(test_ratio) + ((penalty + 1) // 2 * 2)
-                print(test_splits, test_ratio, test_score)
+                # print(test_splits, test_ratio, test_score)
                 # Replace Best variables if better
                 if test_score < best_score:
                     best_targets = test_targets
@@ -437,18 +388,20 @@ def fraction_smart_ratio(*targets: Union[int, List[int], Tuple[int]],
             _smart_ratio(new_targets, divider + 1, new_splits, penalty)
 
     # --- Start Recursive Function ---
-    _smart_ratio(list(fractions), 0, best_splits, 0)
+    _smart_ratio(list(targets), 0, best_splits, 0)
 
     # --- Return ---
     return {'remove': best_splits, 'targets': best_targets,
             'ratio': best_ratio}
 
 
-def even_split(root_node: ConveyorNode, out_amount: int) -> List[ConveyorNode]:
+def even_split(root_node: ConveyorNode, out_amount: int, max_spit: int = 3) \
+        -> List[ConveyorNode]:
     near_nodes = []
     multiplier = root_node.holding / out_amount
 
     def _split(node: ConveyorNode, into: int, back: List[ConveyorNode]):
+        # ToDo (Maybe): Update to allow splitting into greater than 3
         if into < 2:
             raise ValueError(f'Input must be greater than 1')
         if into in {2, 3}:
@@ -477,22 +430,23 @@ def even_split(root_node: ConveyorNode, out_amount: int) -> List[ConveyorNode]:
     return near_nodes
 
 
-def even_merge(end_nodes: List[ConveyorNode], into: List[int],
-               respect_order: bool = False) -> List[ConveyorNode]:
+def even_merge(end_nodes: List[ConveyorNode], into: List[Fraction],
+               max_merge: int = 3, respect_order: bool = False) \
+        -> List[ConveyorNode]:
     # if len(end_nodes) != sum(into):
     #     raise ValueError(f'{len(end_nodes)} != {sum(into)}')
     if not respect_order:
         into.sort()
     ends = []
 
-    def _merge(remaining_nodes: List[ConveyorNode], max_merge=3) \
+    def _merge(remaining_nodes: List[ConveyorNode]) \
             -> ConveyorNode:
         to_node = ConveyorNode()
         for _ in zip(remaining_nodes.copy(), range(max_merge)):
             remaining_nodes.pop(0).link_to(to_node)
         if len(remaining_nodes) > 0:
             remaining_nodes.append(to_node)
-            return _merge(remaining_nodes, max_merge)
+            return _merge(remaining_nodes)
         return to_node
 
     for i, _ in enumerate(into):
@@ -500,18 +454,19 @@ def even_merge(end_nodes: List[ConveyorNode], into: List[int],
     return ends
 
 
-def smart_split(root_node: ConveyorNode, remove_splits: List[List[float]],
-                end_ratio: List[int]):
+def smart_split(root_node: ConveyorNode, remove_splits: List[List[int]],
+                end_ratio: List[Fraction],
+                max_split: int = 3, max_merge: int = 3):
     new_root = root_node
     simp_nodes = []
     for remove in remove_splits:
         these_nodes = []
         next_out = None
         for i, r in enumerate(remove):
-            if i % (MAX_SPLIT - 1) == 0:
+            if i % (max_split - 1) == 0:
                 next_out = ConveyorNode()
-            new_root.link_to(next_out, r)
-            if i % (MAX_SPLIT - 1) == 0 or i == len(remove) - 1:
+            new_root.link_to(next_out, Fraction(r))
+            if i % (max_merge - 1) == 0 or i == len(remove) - 1:
                 next_root = ConveyorNode()
                 new_root.link_to(next_root, new_root.holding)
                 new_root = next_root
@@ -528,17 +483,19 @@ def smart_split(root_node: ConveyorNode, remove_splits: List[List[float]],
             simp_nodes.append(merger)
 
     if sum(end_ratio) > 1:
-        out_nodes = even_split(new_root, sum(end_ratio))
-        out_nodes = even_merge(out_nodes, end_ratio, True)
+        out_nodes = even_split(new_root, sum(end_ratio), max_split)
+        out_nodes = even_merge(out_nodes, end_ratio, max_merge, True)
         if len(simp_nodes) != len(out_nodes):
             raise ValueError
         for true_out, almost_out in zip(simp_nodes, out_nodes):
+            # Adds another node between the splitter and destination so the
+            # connection doesn't get removed but cut_excess.
             spacer = ConveyorNode()
             true_out.link_to(spacer)
             spacer.link_from(almost_out)
 
 
-def simplify_graph(start_nodes: Set[ConveyorNode]) \
+def simplify_graph(start_nodes: Set[ConveyorNode], max_merge: int = 3) \
         -> Dict[str, Set[ConveyorNode]]:
     def island(node: ConveyorNode):
         if node.holding != 0:
@@ -612,6 +569,8 @@ def simplify_graph(start_nodes: Set[ConveyorNode]) \
             return
         seen_nodes.add(curr_node)
 
+        # ToDo: Use node's builtin node type.
+        # ToDo: Add merge limit.
         node_type = (min(len(curr_node.ins), 2),
                      min(len(curr_node.outs), 2))
         if node_type in operations:
@@ -697,190 +656,9 @@ def simplify_graph(start_nodes: Set[ConveyorNode]) \
     return key_nodes
 
 
-def graph_nodes(graph, start_nodes: set):
-    graphed_nodes = {}
-    graphed_edges = set()
-    constrain_nodes = set()
-
-    node_name = {(0, 0): lambda n: str(n),
-                 (0, 1): lambda n: format_float(n.sum_outs),
-                 (0, 2): lambda n: str(n),
-                 (1, 0): lambda n: format_float(n.sum_ins),
-                 (1, 1): lambda n: str(n),
-                 (1, 2): lambda n: '',
-                 (2, 0): lambda n: str(n),
-                 (2, 1): lambda n: '',
-                 (2, 2): lambda n: str(n)}
-
-    node_attr = {(0, 0): 'Island',
-                 (0, 1): 'Source',
-                 (0, 2): 'Source Splitter',
-                 (1, 0): 'Destination',
-                 (1, 1): 'Pass Through',
-                 (1, 2): 'Splitter',
-                 (2, 0): 'Merger Destination',
-                 (2, 1): 'Merger',
-                 (2, 2): 'Merge Splitter'}
-
-    def _graph_nodes(curr_node: ConveyorNode):
-        nonlocal graphed_nodes, graphed_edges, node_attr
-
-        if curr_node not in graphed_nodes:
-            node_type = (min(len(curr_node.ins), 2),
-                         min(len(curr_node.outs), 2))
-            if node_type == (0, 0):
-                return
-            elif node_type == (1, 2) and not curr_node.splits_evenly:
-                graph.node(curr_node.id, node_name[node_type](curr_node),
-                           **NODE_ATTR['Uneven Splitter'])
-            else:
-                graph.node(curr_node.id, node_name[node_type](curr_node),
-                           **NODE_ATTR[node_attr[node_type]])
-            graphed_nodes[curr_node] = node_type
-
-            for dst_node in curr_node.outs.copy():
-                _graph_nodes(dst_node)
-
-        for src_node, links in curr_node.ins.items():
-            if (src_node, curr_node) in graphed_edges or \
-                    src_node not in graphed_nodes:
-                continue
-            graphed_edges.add((src_node, curr_node))
-            for carrying, times in links.items():
-                for _ in range(times):
-                    # xlabels or normal labels?
-                    # xlabels don't work, but labels say to use xlabels
-                    graph.edge(src_node.id, curr_node.id,
-                               label=format_float(carrying),
-                               constraint=str(
-                                   curr_node not in constrain_nodes))
-                    constrain_nodes.add(curr_node)
-
-    for node in start_nodes:
-        _graph_nodes(node)
-
-
 if __name__ == '__main__':
-    def make_nodes(*holdings, **kwargs) -> Set['ConveyorNode']:
-        return {ConveyorNode(holding=h, **kwargs) for h in holdings}
-
-
-    def quick_graph(name: str, nodes: set, view=True):
-        """Simple function to quickly graph nodes and catches ortho issues."""
-        my_graph = make_graph(name)
-        graph_nodes(my_graph, nodes)
-        if view:
-            try:
-                my_graph.view()
-            # This is when ortho lines become unhappy for some reason
-            except gv.backend.execute.CalledProcessError:
-                my_graph = make_graph(name, graph_attr={'splines': 'polyline'})
-                graph_nodes(my_graph, nodes)
-                my_graph.view()
-                return my_graph
-        return my_graph
-
-
-    def make_graph(name: str, engine: str = None,
-                   graph_attr: dict = None, directory: str = None,
-                   format_: str = None, **kwargs) -> gv.Digraph:
-        engine = engine if engine else ENGINE
-        if graph_attr is not None:
-            graph_attr = {'splines': 'ortho', **graph_attr}
-        else:
-            graph_attr = {'splines': 'ortho'}
-        directory = directory if directory else DIRECTORY
-        format_ = format_ if format_ else FORMAT
-        return gv.Digraph(name, engine=engine, graph_attr=graph_attr,
-                          directory=directory, format=format_, **kwargs)
-
-
-    def main(*num: Union[int, Tuple[int]], name: str = 'foo',
-             view: bool = True, simplify: bool = True):
-        if num is None:
-            raise ValueError('No value(s) given for num.')
-
-        # targets = smart_ratio(*num)['ratio']
-        root_node = make_nodes(sum([from_fraction(n) for n in num])).pop()
-        to_node = ConveyorNode()
-        to_node.link_from(root_node)
-
-        if len(num) > 1:
-            remove, ratio_ = itemgetter('remove', 'ratio')(
-                fraction_smart_ratio(*num))
-            smart_split(to_node, remove, ratio_)
-
-            # Uncomment below to see what it looks like before simplifying.
-            # quick_graph(f'{name}pre', {root_node}, view)
-        elif len(num) == 1:
-            if isinstance(num[0], float):
-                try:
-                    even_split(to_node, int(format_float(num[0])))
-                except ValueError:
-                    raise TypeError(
-                        f'If only one value is provided, it has to be an '
-                        f'int, got {num[0]}, which could not be cast to an '
-                        f'int without loosing {num[0] - int(num[0])}.)')
-            elif isinstance(num[0], int):
-                even_split(to_node, num[0])
-            else:
-                raise TypeError('If only one value is provided, '
-                                f'it has to be an int, got {type(num[0])}')
-
-        if simplify:
-            _jic = simplify_graph({root_node})
-
-        return quick_graph(name, {root_node}, view), root_node
-
-
-    def main_yaml(yaml_file):
-        with open(yaml_file) as file:
-            if yaml_file.lower().endswith('.json'):
-                settings = iter(yaml.safe_load(file))
-            elif yaml_file.lower().endswith('.yaml') or \
-                    yaml_file.lower().endswith('.yml'):
-                settings = yaml.safe_load_all(file)
-            else:
-                raise IOError('Unrecognized File Type')
-
-            config = next(settings)
-            global MAX_MERGE, MAX_SPLIT
-            MAX_MERGE, MAX_SPLIT = config['MAX_MERGE'], config['MAX_SPLIT']
-            global ENGINE
-            ENGINE = config['ENGINE']
-            global FORMAT
-            FORMAT = config['FORMAT']
-            global NODE_ATTR
-            NODE_ATTR = config['NODE_ATTR']
-            global GRAPH_ATTR
-            GRAPH_ATTR = config['GRAPH_ATTR']
-            global BELTS, MK
-            BELTS, MK = config['BELTS'], config['MK']
-            global DIRECTORY
-            DIRECTORY = config['DIRECTORY']
-
-            do = next(settings)
-            if 'Calculate' in do:
-                try:
-                    calc = list(next(settings))
-                except TypeError:
-                    raise ValueError('YAML has nothing to calculate.')
-                root_node = main(*calc, name=do['Calculate'])[1]
-                if 'Save Nodes' in do and do['Save Nodes']:
-                    save_to = ''
-                    if DIRECTORY != '':
-                        save_to = DIRECTORY.rstrip('/') + '/'
-                    new_do = do.copy()
-                    del new_do['Calculate']
-                    if 'Graph' not in new_do:
-                        new_do['Graph'] = do['Calculate']
-                    with open(f'{save_to}{do["Calculate"]}.yaml',
-                              'w+') as save_file:
-                        yaml.safe_dump_all(
-                            [config, new_do, root_node], save_file)
-            if 'Graph' in do:
-                quick_graph(do['Graph'], set(settings))
-
 
     if len(argv) > 1:
-        main_yaml(argv[1])
+        from cli import main_file
+
+        main_file(argv[1])

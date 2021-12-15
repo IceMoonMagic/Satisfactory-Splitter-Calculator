@@ -1,5 +1,6 @@
 import decimal
 import math
+from typing import Dict, List
 
 import graphviz as gv
 
@@ -54,6 +55,72 @@ def split(into: int, back: int = 0):
     if into % 3 == 0:
         return split(into // 3, back), split(into // 3), split(into // 3)
     return split((into + 1), back + 1)
+
+
+def smart_ratio(*targets: int, mk: int = 5, alt_belts: list = None) -> \
+        Dict[str, List[float]]:
+    """
+    Tries to find the best ratio by removing full belts beforehand.
+
+    :param targets: What the desired outputs are.
+    :param mk: Highest available MK of belt in (from base game).
+    :param alt_belts: Allows custom belt removal amounts. Overrides mk.
+    :return: dict with calculated targets, ratio, and how to get them.
+    """
+    belts = alt_belts.sort() if alt_belts else [60, 120, 270, 480, 780][:mk]
+
+    '''Best way to simplify the ratio, defaults to doing nothing'''
+    '''The raw values being ratio-ed'''
+    best_targets = list(targets)
+    '''Simplified ratio by going through ratio()'''
+    best_ratio = ratio(*targets)
+    '''Lower is better, sum of output from ratio() with additional penalty'''
+    best_score = sum(best_ratio)
+    '''How to subtract from each each out to get the best ratio.'''
+    best_splits = [[] for _ in targets]
+
+    def _smart_ratio(new_targets: list, divider: int,
+                     new_splits: list, penalty: int):
+        """Should test every combination of removing a full belt for ratios."""
+        nonlocal best_targets, best_ratio, best_score, best_splits
+        for belt in belts:
+            if new_targets[divider] >= belt:
+                # --- Setup Test Variables ---
+                # Record how much is removed
+                test_splits = [i.copy() for i in new_splits]  # needs deep copy
+                test_splits[divider].append(belt)
+                # Remove from belt
+                test_targets = new_targets.copy()
+                test_targets[divider] -= belt
+
+                # --- Test Ratio ---
+                if sum(test_targets) != 0:
+                    test_ratio = ratio(*test_targets)
+                else:
+                    test_ratio = [0] * len(test_targets)
+                    penalty -= 1
+                test_score = sum(test_ratio) + ((penalty + 1) // 2 * 2)
+                # Replace Best variables if better
+                if test_score < best_score:
+                    best_targets = test_targets
+                    best_ratio = test_ratio
+                    best_score = test_score
+                    best_splits = [i.copy() for i in test_splits]
+
+                # Try removing more, then try removing a different amount
+                _smart_ratio(test_targets, divider, test_splits, penalty + 1)
+            else:
+                break
+        if divider + 1 < len(new_targets):
+            # Move on to the next output
+            _smart_ratio(new_targets, divider + 1, new_splits, penalty)
+
+    # Calculate
+    _smart_ratio(list(targets), 0, best_splits, 0)
+
+    # Output
+    return {'remove': best_splits, 'targets': best_targets,
+            'ratio': best_ratio}
 
 
 def print_splitters(src: str):
