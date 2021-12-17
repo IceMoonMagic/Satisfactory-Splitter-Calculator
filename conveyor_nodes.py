@@ -163,11 +163,11 @@ class ConveyorNode:
 
     @property
     def sum_ins(self) -> Fraction:
-        return Fraction(Decimal(str(self._sum_connections(self.ins, True))))
+        return Fraction(str(self._sum_connections(self.ins, True)))
 
     @property
     def sum_outs(self) -> Fraction:
-        return Fraction(Decimal(str(self._sum_connections(self.outs, True))))
+        return Fraction(str(self._sum_connections(self.outs, True)))
 
     @property
     def splits_evenly(self) -> bool:
@@ -337,7 +337,8 @@ def smart_ratio(*targets: Fraction,
     #     fractions.append(to_fraction(fraction))
 
     #  --- Set Up Additional Variables ---
-    belts = alt_belts.sort() if alt_belts else [60, 120, 270, 480, 780][:mk]
+    belts = alt_belts if alt_belts else [60, 120, 270, 480, 780][:mk]
+    belts.sort()
 
     '''Best way to simplify the ratio, defaults to doing nothing'''
     '''The raw values being ratio-ed'''

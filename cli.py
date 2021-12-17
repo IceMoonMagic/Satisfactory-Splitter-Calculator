@@ -198,6 +198,7 @@ def main_file(filename):
         if 'Calculate' in do:
             try:
                 calc = list(next(settings))
+                calc = [Fraction(*i) for i in calc]
             except TypeError:
                 raise ValueError('File has nothing to calculate.')
             main(*calc, name=do['Calculate'], **config)
