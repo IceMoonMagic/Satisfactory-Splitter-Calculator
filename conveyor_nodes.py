@@ -126,7 +126,7 @@ class ConveyorNode:
                 dst.depth = min([in_node.depth + 1 for in_node in dst.ins])
             else:
                 dst.depth = 0
-                print('doubtful', dst.in_links)
+                # print('doubtful', dst.in_links)
 
     # @staticmethod
     # def links_str(connections: dict, indent: int = 0) -> str:

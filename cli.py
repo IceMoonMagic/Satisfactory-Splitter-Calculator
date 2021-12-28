@@ -217,7 +217,7 @@ def main_cli():
                         help='what to split into')
     parser.add_argument('--belts', type=int, nargs='+',
                         help='Available belt speeds.')
-    parser.add_argument('-b', type=int, nargs=1, default=5, dest='mk',
+    parser.add_argument('-b', type=int, default=5, dest='mk',
                         help='Highest available default belt. '
                              'Ignored if --belts provided')
     parser.add_argument('-s', '--split', type=int, default=3, dest='max_split',
