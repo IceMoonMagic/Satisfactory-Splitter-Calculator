@@ -9,6 +9,11 @@ A tool to help calculate how to split conveyors in Satisfactory into specific ra
 Nothing else, everything used is built into python.
 
 ### Generating Graphs (via cli.py)
+
+``pip install -r requirements.txt``
+
+#### requirements.txt contains:
+
 [PyYAML](https://pypi.org/project/PyYAML/)  |  Can be removed if you really want to, just search for `REMOVE YAML` comments.
 
 [Python Graphviz](https://pypi.org/project/PyYAML/) (Note: Requires actual Graphviz, more details on pypi.)
