@@ -6,7 +6,7 @@ from operator import itemgetter
 import conveyor_nodes as cn
 
 
-def main(*args):
+def create_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='Calculate Splitters')
 
     parser.add_argument('into', metavar='N', type=Fraction, nargs='+',
@@ -22,7 +22,11 @@ def main(*args):
                         help='Max number of merges per merger.')
     parser.add_argument('--to-file', type=str, default='',
                         help='Save output to specified file.')
+    return parser
 
+
+def main(*args):
+    parser = create_arg_parser()
     args = parser.parse_args(*args)
     # print(args)
     if any([i <= 0 for i in args.into]):
