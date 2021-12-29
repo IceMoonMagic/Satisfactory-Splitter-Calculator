@@ -177,13 +177,6 @@ def main_file(filename):
             raise IOError('Unrecognized File Type')
 
         config = next(settings)
-        # MAX_MERGE, MAX_SPLIT = config['MAX_MERGE'], config['MAX_SPLIT']
-        # ENGINE = config['ENGINE']
-        # FORMAT = config['FORMAT']
-        # NODE_ATTR = config['NODE_ATTR']
-        # GRAPH_ATTR = config['GRAPH_ATTR']
-        # BELTS, MK = config['BELTS'], config['MK']
-        # DIRECTORY = config['DIRECTORY']
         for key, element in config.copy().items():
             if key == 'NODE_ATTR':
                 NODE_ATTR.update(element)
@@ -213,20 +206,6 @@ def main_file(filename):
 def main_cli():
     parser = argparse.ArgumentParser('name', parents=[create_arg_parser()],
                                      conflict_handler='resolve')
-    # parser = argparse.ArgumentParser(description='Calculate Satisfactory '
-    #                                              'Splitters and Graph Them.')
-    #
-    # parser.add_argument('into', metavar='N', type=Fraction, nargs='+',
-    #                     help='what to split into')
-    # parser.add_argument('--belts', type=int, nargs='+',
-    #                     help='Available belt speeds.')
-    # parser.add_argument('-b', type=int, default=5, dest='mk',
-    #                     help='Highest available default belt. '
-    #                          'Ignored if --belts provided')
-    # parser.add_argument('-s', '--split', type=int, default=3, dest='max_split',
-    #                     help='Max number of splits per splitter.')
-    # parser.add_argument('-m', '--merge', type=int, default=3, dest='max_merge',
-    #                     help='Max number of merges per merger.')
 
     graph = parser.add_argument_group('Graphviz')
     graph.add_argument('-e', '--engine', type=str, default='dot',
@@ -239,31 +218,13 @@ def main_cli():
                         help='Filename to save to (w/o extension)')
 
     args = parser.parse_args()
-    # print(args)
     if any([i <= 0 for i in args.into]):
         raise ValueError(f'Inputs must be greater than 0')
 
     foo = vars(args).copy()
     del foo['into']
     del foo['to_file']
-    # print(args)
     main(*args.into, name=args.to_file, **foo)
-
-    # root_node =
-    # cn.ConveyorNode(sum([cn.from_fraction(f) for f in args.into]))
-    # to_node = cn.ConveyorNode()
-    # to_node.link_from(root_node)
-    #
-    # if len(args.into) > 1:
-    #     remove, ratio = itemgetter('remove', 'ratio')(
-    #         cn.smart_ratio(*args.into))
-    #     cn.smart_split(to_node, remove, ratio)
-    # else:
-    #     cn.even_split(to_node, int(args.into[0]))
-    #
-    # cn.simplify_graph({root_node})
-    #
-    # quick_graph
 
 
 if __name__ == '__main__':

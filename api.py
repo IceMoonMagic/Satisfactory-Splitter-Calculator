@@ -33,15 +33,8 @@ def create_arg_parser() -> argparse.ArgumentParser:
 def main(*args):
     parser = create_arg_parser()
     args = parser.parse_args(*args)
-    # print(args)
     if any([i <= 0 for i in args.into]):
         raise ValueError(f'Inputs must be greater than 0')
-    # fractions = []
-    # for i in args.into:
-    #     if i > 0:
-    #         fractions.append(list(i.as_integer_ratio()))
-    #     else:
-    # print(fractions)
 
     root_node = cn.ConveyorNode(sum(args.into))
     to_node = cn.ConveyorNode()
