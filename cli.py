@@ -10,6 +10,7 @@ import graphviz as gv
 import yaml
 
 import conveyor_nodes as cn
+from api import create_arg_parser
 
 NODE_ATTR = {'Island': {},
              'Source': {'shape': 'house'},
@@ -210,26 +211,30 @@ def main_file(filename):
 
 
 def main_cli():
-    parser = argparse.ArgumentParser(description='Calculate Satisfactory '
-                                                 'Splitters and Graph Them.')
+    parser = argparse.ArgumentParser('name', parents=[create_arg_parser()],
+                                     conflict_handler='resolve')
+    # parser = argparse.ArgumentParser(description='Calculate Satisfactory '
+    #                                              'Splitters and Graph Them.')
+    #
+    # parser.add_argument('into', metavar='N', type=Fraction, nargs='+',
+    #                     help='what to split into')
+    # parser.add_argument('--belts', type=int, nargs='+',
+    #                     help='Available belt speeds.')
+    # parser.add_argument('-b', type=int, default=5, dest='mk',
+    #                     help='Highest available default belt. '
+    #                          'Ignored if --belts provided')
+    # parser.add_argument('-s', '--split', type=int, default=3, dest='max_split',
+    #                     help='Max number of splits per splitter.')
+    # parser.add_argument('-m', '--merge', type=int, default=3, dest='max_merge',
+    #                     help='Max number of merges per merger.')
 
-    parser.add_argument('into', metavar='N', type=Fraction, nargs='+',
-                        help='what to split into')
-    parser.add_argument('--belts', type=int, nargs='+',
-                        help='Available belt speeds.')
-    parser.add_argument('-b', type=int, default=5, dest='mk',
-                        help='Highest available default belt. '
-                             'Ignored if --belts provided')
-    parser.add_argument('-s', '--split', type=int, default=3, dest='max_split',
-                        help='Max number of splits per splitter.')
-    parser.add_argument('-m', '--merge', type=int, default=3, dest='max_merge',
-                        help='Max number of merges per merger.')
-    parser.add_argument('-e', '--engine', type=str, default='dot',
-                        help='Output layout engine. (How everything looks) '
-                             'https://graphviz.org/docs/layouts/')
-    parser.add_argument('-f', '--format', type=str, default='pdf',
-                        help='Output file type. '
-                             'https://graphviz.org/docs/outputs/')
+    graph = parser.add_argument_group('Graphviz')
+    graph.add_argument('-e', '--engine', type=str, default='dot',
+                       help='Output layout engine. (How everything looks) '
+                            'https://graphviz.org/docs/layouts/')
+    graph.add_argument('-f', '--format', type=str, default='pdf',
+                       help='Output file type. '
+                            'https://graphviz.org/docs/outputs/')
     parser.add_argument('--to-file', type=str, default='splitters',
                         help='Filename to save to (w/o extension)')
 
