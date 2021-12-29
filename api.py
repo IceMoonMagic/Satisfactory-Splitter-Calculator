@@ -11,16 +11,21 @@ def create_arg_parser() -> argparse.ArgumentParser:
 
     parser.add_argument('into', metavar='N', type=Fraction, nargs='+',
                         help='what to split into')
-    parser.add_argument('--belts', type=int, nargs='+',
-                        help='Available belt speeds.')
-    parser.add_argument('-b', type=int, default=5, dest='mk',
-                        help='Highest available default belt. '
-                             'Ignored if --belts provided')
-    parser.add_argument('-s', '--split', type=int, default=3, dest='max_split',
-                        help='Max number of splits per splitter.')
-    parser.add_argument('-m', '--merge', type=int, default=3, dest='max_merge',
-                        help='Max number of merges per merger.')
-    parser.add_argument('--to-file', type=str, default='',
+
+    belts = parser.add_argument_group('Belts (Mutually Exclusive)')
+    belts = belts.add_mutually_exclusive_group()
+    belts.add_argument('--belts', type=int, nargs='+',
+                       help='Available belt speeds.')
+    belts.add_argument('-b', type=int, default=5, dest='mk',
+                       help='Highest available default belt.')
+
+    nodes = parser.add_argument_group('Node Behavior')
+    nodes.add_argument('-s', '--split', type=int, default=3, dest='max_split',
+                       metavar='S', help='Max number of splits per splitter.')
+    nodes.add_argument('-m', '--merge', type=int, default=3, dest='max_merge',
+                       metavar='M', help='Max number of merges per merger.')
+
+    parser.add_argument('--to-file', type=str, default='', metavar='FILE',
                         help='Save output to specified file.')
     return parser
 
