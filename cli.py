@@ -115,9 +115,9 @@ def make_graph(name: str, engine: str = 'dot',
                graph_attr: dict = None, directory: str = '',
                format_: str = 'pdf', **kwargs) -> gv.Digraph:
     if graph_attr is not None:
-        graph_attr = {'splines': 'ortho', **graph_attr}
+        graph_attr = {**GRAPH_ATTR, **graph_attr}
     else:
-        graph_attr = {'splines': 'ortho'}
+        graph_attr = {**GRAPH_ATTR}
     return gv.Digraph(name, engine=engine, graph_attr=graph_attr,
                       directory=directory, format=format_, **kwargs)
 
@@ -214,6 +214,12 @@ def main_cli():
     graph.add_argument('-f', '--format', type=str, default='pdf',
                        help='Output file type. '
                             'https://graphviz.org/docs/outputs/')
+    graph.add_argument('-l', '--lines',
+                       default='ortho', dest='lines',
+                       choices=['none', 'line', 'polyline',
+                                'curved', 'ortho', 'spline'],
+                       help='Style to draw lines. '
+                            'https://graphviz.org/docs/attrs/splines/')
     parser.add_argument('--to-file', type=str, default='splitters',
                         help='Filename to save to (w/o extension)')
 
@@ -221,9 +227,13 @@ def main_cli():
     if any([i <= 0 for i in args.into]):
         raise ValueError(f'Inputs must be greater than 0')
 
+    if args.lines != GRAPH_ATTR['splines']:
+        GRAPH_ATTR['splines'] = args.lines
+
     foo = vars(args).copy()
     del foo['into']
     del foo['to_file']
+    del foo['lines']
     main(*args.into, name=args.to_file, **foo)
 
 
