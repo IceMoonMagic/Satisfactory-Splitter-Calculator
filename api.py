@@ -2,6 +2,7 @@ import argparse
 import json
 from fractions import Fraction
 from operator import itemgetter
+from typing import Sequence
 
 import conveyor_nodes as cn
 
@@ -30,24 +31,37 @@ def create_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(*args):
-    parser = create_arg_parser()
-    args = parser.parse_args(*args)
-    if any([i <= 0 for i in args.into]):
+def main_base(into: Sequence[Fraction], belts: Sequence[int], mk: int,
+              max_split: int, max_merge: int) -> cn.ConveyorNode:
+
+    if not len(into) > 0:
+        raise ValueError(f'No inputs provided.')
+    if not all([i > 0 for i in into]):
         raise ValueError(f'Inputs must be greater than 0')
 
-    root_node = cn.ConveyorNode(sum(args.into))
+    root_node = cn.ConveyorNode(sum(into))
     to_node = cn.ConveyorNode()
     to_node.link_from(root_node)
 
-    if len(args.into) > 1:
+    if len(into) > 1:
         remove, ratio = itemgetter('remove', 'ratio')(
-            cn.smart_ratio(*args.into, mk=args.mk, alt_belts=args.belts))
-        cn.smart_split(to_node, remove, ratio, args.max_split, args.max_merge)
+            cn.smart_ratio(*into, mk=mk, alt_belts=belts))
+        cn.smart_split(to_node, remove, ratio, max_split, max_merge)
     else:
-        cn.even_split(to_node, int(args.into[0]), args.max_split)
+        if into[0].denominator != 1:
+            raise ValueError(f'{into[0]} is not a natural number / int.')
+        cn.even_split(to_node, int(into[0]), max_split)
 
     cn.simplify_graph({root_node})
+    return root_node
+
+
+def main(*args):
+    parser = create_arg_parser()
+    args = parser.parse_args(*args)
+
+    root_node = main_base(into=args.into, belts=args.belts, mk=args.mk,
+                          max_split=args.max_split, max_merge=args.max_merge)
 
     as_json = cn.ConveyorNode.to_json({root_node})
     if args.to_file == '':
