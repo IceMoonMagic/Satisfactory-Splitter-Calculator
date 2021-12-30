@@ -10,7 +10,7 @@ import graphviz as gv
 import yaml
 
 import conveyor_nodes as cn
-from api import create_arg_parser
+import api
 
 NODE_ATTR = {'Island': {},
              'Source': {'shape': 'house'},
@@ -113,54 +113,54 @@ def quick_graph(name: str, nodes: set, view=True, **kwargs):
 
 def make_graph(name: str, engine: str = 'dot',
                graph_attr: dict = None, directory: str = '',
-               format_: str = 'pdf', **kwargs) -> gv.Digraph:
+               format: str = 'pdf', **kwargs) -> gv.Digraph:
     if graph_attr is not None:
         graph_attr = {**GRAPH_ATTR, **graph_attr}
     else:
         graph_attr = {**GRAPH_ATTR}
     return gv.Digraph(name, engine=engine, graph_attr=graph_attr,
-                      directory=directory, format=format_, **kwargs)
+                      directory=directory, format=format, **kwargs)
 
 
-def main(*num: Fraction, name: str = 'foo',
-         max_merge: int = 3, max_split: int = 3, engine: str = 'dot',
-         format: str = 'png', belts: List[int] = None, mk: int = 5,
-         directory: str = ''):
-    if num is None:
-        raise ValueError('No value(s) given for num.')
-
-    root_node = make_nodes(sum(num)).pop()
-    to_node = cn.ConveyorNode()
-    to_node.link_from(root_node)
-
-    if len(num) > 1:
-        remove, ratio_ = itemgetter('remove', 'ratio')(
-            cn.smart_ratio(*num, mk=mk, alt_belts=belts))
-        cn.smart_split(to_node, remove, ratio_, max_split, max_merge)
-
-        # Uncomment below to see what it looks like before simplifying.
-        # quick_graph(f'{name}pre', {root_node}, view)
-    elif len(num) == 1:
-        if isinstance(num[0], Fraction):
-            use = int(num[0])
-        elif isinstance(num[0], float):
-            try:
-                use = int(cn.format_float(num[0]))
-            except ValueError:
-                raise TypeError(
-                    f'If only one value is provided, it has to be an '
-                    f'int, got {num[0]}, which could not be cast to an '
-                    f'int without loosing {num[0] - int(num[0])}.)')
-        elif isinstance(num[0], int):
-            use = num[0]
-        else:
-            raise TypeError('If only one value is provided, '
-                            f'it has to be an int, got {type(num[0])}')
-        cn.even_split(to_node, use, max_split)
-
-    _jic = cn.simplify_graph({root_node})
-    return quick_graph(name, {root_node}, engine=engine, format_=format,
-                       directory=directory), root_node
+# def main(*num: Fraction, name: str = 'foo',
+#          max_merge: int = 3, max_split: int = 3, engine: str = 'dot',
+#          format: str = 'png', belts: List[int] = None, mk: int = 5,
+#          directory: str = ''):
+#     if num is None:
+#         raise ValueError('No value(s) given for num.')
+#
+#     root_node = make_nodes(sum(num)).pop()
+#     to_node = cn.ConveyorNode()
+#     to_node.link_from(root_node)
+#
+#     if len(num) > 1:
+#         remove, ratio_ = itemgetter('remove', 'ratio')(
+#             cn.smart_ratio(*num, mk=mk, alt_belts=belts))
+#         cn.smart_split(to_node, remove, ratio_, max_split, max_merge)
+#
+#         # Uncomment below to see what it looks like before simplifying.
+#         # quick_graph(f'{name}pre', {root_node}, view)
+#     elif len(num) == 1:
+#         if isinstance(num[0], Fraction):
+#             use = int(num[0])
+#         elif isinstance(num[0], float):
+#             try:
+#                 use = int(cn.format_float(num[0]))
+#             except ValueError:
+#                 raise TypeError(
+#                     f'If only one value is provided, it has to be an '
+#                     f'int, got {num[0]}, which could not be cast to an '
+#                     f'int without loosing {num[0] - int(num[0])}.)')
+#         elif isinstance(num[0], int):
+#             use = num[0]
+#         else:
+#             raise TypeError('If only one value is provided, '
+#                             f'it has to be an int, got {type(num[0])}')
+#         cn.even_split(to_node, use, max_split)
+#
+#     _jic = cn.simplify_graph({root_node})
+#     return quick_graph(name, {root_node}, engine=engine, format_=format,
+#                        directory=directory), root_node
 
 
 def main_file(filename):
@@ -192,10 +192,20 @@ def main_file(filename):
         if 'Calculate' in do:
             try:
                 calc = list(next(settings))
-                calc = [Fraction(*i) for i in calc]
-            except TypeError:
+                # calc = [Fraction(*i) for i in calc]
+                for i, e in enumerate(calc):
+                    if isinstance(e, (list, tuple)):
+                        calc[i] = Fraction(*e)
+                    else:
+                        calc[i] = Fraction(e)
+            except (TypeError, StopIteration):
                 raise ValueError('File has nothing to calculate.')
-            main(*calc, name=do['Calculate'], **config)
+            # main(*calc, name=do['Calculate'], **config)
+            root_node = api.main_base(calc, *itemgetter('belts', 'mk',
+                                                        'max_split',
+                                                        'max_merge')(config))
+            quick_graph(do['Calculate'], {root_node},
+                        engine=config['engine'], format=config['format'])
             if 'Save Nodes' in do and do['Save Nodes']:
                 print('Save Nodes has been replaced with '
                       'ConveyorNode.to_json. Call api.py instead.')
@@ -204,7 +214,7 @@ def main_file(filename):
 
 
 def main_cli():
-    parser = argparse.ArgumentParser('name', parents=[create_arg_parser()],
+    parser = argparse.ArgumentParser('name', parents=[api.create_arg_parser()],
                                      conflict_handler='resolve')
 
     graph = parser.add_argument_group('Graphviz')
@@ -234,7 +244,12 @@ def main_cli():
     del args_copy['into']
     del args_copy['to_file']
     del args_copy['lines']
-    main(*args.into, name=args.to_file, **args_copy)
+    root_node = api.main_base(*itemgetter('into', 'belts', 'mk', 'max_split',
+                                          'max_merge')(vars(args)))
+    quick_graph(args.to_file, {root_node},
+                engine=args.engine, format=args.format,
+                graph_attr={**GRAPH_ATTR, 'splines': args.lines})
+    # main(*args.into, name=args.to_file, **args_copy)
 
 
 if __name__ == '__main__':
