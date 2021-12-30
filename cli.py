@@ -171,7 +171,9 @@ def main_file(filename):
 
 
 def main_cli():
-    parser = argparse.ArgumentParser('name', parents=[api.create_arg_parser()],
+    parser = argparse.ArgumentParser(description='Calculate Satisfactory '
+                                                 'Splitters and Graph Them.',
+                                     parents=[api.create_arg_parser()],
                                      conflict_handler='resolve')
 
     graph = parser.add_argument_group('Graphviz')
