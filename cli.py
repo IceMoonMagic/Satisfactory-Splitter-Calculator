@@ -230,11 +230,11 @@ def main_cli():
     if args.lines != GRAPH_ATTR['splines']:
         GRAPH_ATTR['splines'] = args.lines
 
-    foo = vars(args).copy()
-    del foo['into']
-    del foo['to_file']
-    del foo['lines']
-    main(*args.into, name=args.to_file, **foo)
+    args_copy = vars(args).copy()
+    del args_copy['into']
+    del args_copy['to_file']
+    del args_copy['lines']
+    main(*args.into, name=args.to_file, **args_copy)
 
 
 if __name__ == '__main__':
