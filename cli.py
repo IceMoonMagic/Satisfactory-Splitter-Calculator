@@ -2,7 +2,7 @@ import argparse
 from fractions import Fraction
 from operator import itemgetter
 from sys import argv
-from typing import List, Set
+from typing import Set
 
 import graphviz as gv
 # REMOVE YAML: Switch comment on next two lines
@@ -10,6 +10,7 @@ import graphviz as gv
 import yaml
 
 import conveyor_nodes as cn
+import api
 
 NODE_ATTR = {'Island': {},
              'Source': {'shape': 'house'},
@@ -112,54 +113,13 @@ def quick_graph(name: str, nodes: set, view=True, **kwargs):
 
 def make_graph(name: str, engine: str = 'dot',
                graph_attr: dict = None, directory: str = '',
-               format_: str = 'pdf', **kwargs) -> gv.Digraph:
+               format: str = 'pdf', **kwargs) -> gv.Digraph:
     if graph_attr is not None:
-        graph_attr = {'splines': 'ortho', **graph_attr}
+        graph_attr = {**GRAPH_ATTR, **graph_attr}
     else:
-        graph_attr = {'splines': 'ortho'}
+        graph_attr = {**GRAPH_ATTR}
     return gv.Digraph(name, engine=engine, graph_attr=graph_attr,
-                      directory=directory, format=format_, **kwargs)
-
-
-def main(*num: Fraction, name: str = 'foo',
-         max_merge: int = 3, max_split: int = 3, engine: str = 'dot',
-         format: str = 'png', belts: List[int] = None, mk: int = 5,
-         directory: str = ''):
-    if num is None:
-        raise ValueError('No value(s) given for num.')
-
-    root_node = make_nodes(sum(num)).pop()
-    to_node = cn.ConveyorNode()
-    to_node.link_from(root_node)
-
-    if len(num) > 1:
-        remove, ratio_ = itemgetter('remove', 'ratio')(
-            cn.smart_ratio(*num, mk=mk, alt_belts=belts))
-        cn.smart_split(to_node, remove, ratio_, max_split, max_merge)
-
-        # Uncomment below to see what it looks like before simplifying.
-        # quick_graph(f'{name}pre', {root_node}, view)
-    elif len(num) == 1:
-        if isinstance(num[0], Fraction):
-            use = int(num[0])
-        elif isinstance(num[0], float):
-            try:
-                use = int(cn.format_float(num[0]))
-            except ValueError:
-                raise TypeError(
-                    f'If only one value is provided, it has to be an '
-                    f'int, got {num[0]}, which could not be cast to an '
-                    f'int without loosing {num[0] - int(num[0])}.)')
-        elif isinstance(num[0], int):
-            use = num[0]
-        else:
-            raise TypeError('If only one value is provided, '
-                            f'it has to be an int, got {type(num[0])}')
-        cn.even_split(to_node, use, max_split)
-
-    _jic = cn.simplify_graph({root_node})
-    return quick_graph(name, {root_node}, engine=engine, format_=format,
-                       directory=directory), root_node
+                      directory=directory, format=format, **kwargs)
 
 
 def main_file(filename):
@@ -176,13 +136,6 @@ def main_file(filename):
             raise IOError('Unrecognized File Type')
 
         config = next(settings)
-        # MAX_MERGE, MAX_SPLIT = config['MAX_MERGE'], config['MAX_SPLIT']
-        # ENGINE = config['ENGINE']
-        # FORMAT = config['FORMAT']
-        # NODE_ATTR = config['NODE_ATTR']
-        # GRAPH_ATTR = config['GRAPH_ATTR']
-        # BELTS, MK = config['BELTS'], config['MK']
-        # DIRECTORY = config['DIRECTORY']
         for key, element in config.copy().items():
             if key == 'NODE_ATTR':
                 NODE_ATTR.update(element)
@@ -198,10 +151,18 @@ def main_file(filename):
         if 'Calculate' in do:
             try:
                 calc = list(next(settings))
-                calc = [Fraction(*i) for i in calc]
-            except TypeError:
+                for i, e in enumerate(calc):
+                    if isinstance(e, (list, tuple)):
+                        calc[i] = Fraction(*e)
+                    else:
+                        calc[i] = Fraction(e)
+            except (TypeError, StopIteration):
                 raise ValueError('File has nothing to calculate.')
-            main(*calc, name=do['Calculate'], **config)
+            root_node = api.main_base(calc, *itemgetter('belts', 'mk',
+                                                        'max_split',
+                                                        'max_merge')(config))
+            quick_graph(do['Calculate'], {root_node},
+                        engine=config['engine'], format=config['format'])
             if 'Save Nodes' in do and do['Save Nodes']:
                 print('Save Nodes has been replaced with '
                       'ConveyorNode.to_json. Call api.py instead.')
@@ -211,54 +172,42 @@ def main_file(filename):
 
 def main_cli():
     parser = argparse.ArgumentParser(description='Calculate Satisfactory '
-                                                 'Splitters and Graph Them.')
+                                                 'Splitters and Graph Them.',
+                                     parents=[api.create_arg_parser()],
+                                     conflict_handler='resolve')
 
-    parser.add_argument('into', metavar='N', type=Fraction, nargs='+',
-                        help='what to split into')
-    parser.add_argument('--belts', type=int, nargs='+',
-                        help='Available belt speeds.')
-    parser.add_argument('-b', type=int, default=5, dest='mk',
-                        help='Highest available default belt. '
-                             'Ignored if --belts provided')
-    parser.add_argument('-s', '--split', type=int, default=3, dest='max_split',
-                        help='Max number of splits per splitter.')
-    parser.add_argument('-m', '--merge', type=int, default=3, dest='max_merge',
-                        help='Max number of merges per merger.')
-    parser.add_argument('-e', '--engine', type=str, default='dot',
-                        help='Output layout engine. (How everything looks) '
-                             'https://graphviz.org/docs/layouts/')
-    parser.add_argument('-f', '--format', type=str, default='pdf',
-                        help='Output file type. '
-                             'https://graphviz.org/docs/outputs/')
+    graph = parser.add_argument_group('Graphviz')
+    graph.add_argument('-e', '--engine', type=str, default='dot',
+                       help='Output layout engine. (How everything looks) '
+                            'https://graphviz.org/docs/layouts/')
+    graph.add_argument('-f', '--format', type=str, default='pdf',
+                       help='Output file type. '
+                            'https://graphviz.org/docs/outputs/')
+    graph.add_argument('-l', '--lines',
+                       default='ortho', dest='lines',
+                       choices=['none', 'line', 'polyline',
+                                'curved', 'ortho', 'spline'],
+                       help='Style to draw lines. '
+                            'https://graphviz.org/docs/attrs/splines/')
     parser.add_argument('--to-file', type=str, default='splitters',
                         help='Filename to save to (w/o extension)')
 
     args = parser.parse_args()
-    # print(args)
     if any([i <= 0 for i in args.into]):
         raise ValueError(f'Inputs must be greater than 0')
 
-    foo = vars(args).copy()
-    del foo['into']
-    del foo['to_file']
-    # print(args)
-    main(*args.into, name=args.to_file, **foo)
+    if args.lines != GRAPH_ATTR['splines']:
+        GRAPH_ATTR['splines'] = args.lines
 
-    # root_node =
-    # cn.ConveyorNode(sum([cn.from_fraction(f) for f in args.into]))
-    # to_node = cn.ConveyorNode()
-    # to_node.link_from(root_node)
-    #
-    # if len(args.into) > 1:
-    #     remove, ratio = itemgetter('remove', 'ratio')(
-    #         cn.smart_ratio(*args.into))
-    #     cn.smart_split(to_node, remove, ratio)
-    # else:
-    #     cn.even_split(to_node, int(args.into[0]))
-    #
-    # cn.simplify_graph({root_node})
-    #
-    # quick_graph
+    args_copy = vars(args).copy()
+    del args_copy['into']
+    del args_copy['to_file']
+    del args_copy['lines']
+    root_node = api.main_base(*itemgetter('into', 'belts', 'mk', 'max_split',
+                                          'max_merge')(vars(args)))
+    quick_graph(args.to_file, {root_node},
+                engine=args.engine, format=args.format,
+                graph_attr={**GRAPH_ATTR, 'splines': args.lines})
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@ import math
 from decimal import Decimal
 from fractions import Fraction
 from sys import argv
-from typing import Union, List, Dict, Set, Tuple
+from typing import Union, List, Dict, Sequence, Set, Tuple
 
 
 class ConveyorNode:
@@ -329,7 +329,7 @@ def ratio(*targets: Fraction) -> List[int]:
 
 
 def smart_ratio(*targets: Fraction,
-                mk: int = 5, alt_belts: list = None) -> \
+                mk: int = 5, alt_belts: Sequence[int] = None) -> \
         Dict[str, List[float]]:
     # #  --- Set Up Fractions ---
     # fractions = []

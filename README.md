@@ -31,10 +31,12 @@ Ex:
 python api.py 1 2 3 -b 4
 python api.py 60 120 --belts 30 60 120
 python api.py 8
+python api.py 10/3 2.75
 ```
+(Fractions can be input as a decimal or `N/M` where `N` and `M` are ints)
 
 ### Graph Output
-You can run `cli.py` with all the same arguments as `api.py` above, with additional options for layout engine and output file type.
+You can run `cli.py` with all the same arguments as `api.py` above, with additional options for layout engine, line type, and output file type.
 
 Alternatively, you can run it with a config file. 
 Run `cli.py` with a YAML file as the first argument.
