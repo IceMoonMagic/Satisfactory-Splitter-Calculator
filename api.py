@@ -18,6 +18,7 @@ def create_arg_parser() -> argparse.ArgumentParser:
     belts.add_argument('--belts', type=int, nargs='+',
                        help='Available belt speeds.')
     belts.add_argument('-b', type=int, default=5, dest='mk',
+                       choices=[1, 2, 3, 4, 5],
                        help='Highest available default belt.')
 
     nodes = parser.add_argument_group('Node Behavior')
