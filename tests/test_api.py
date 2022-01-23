@@ -2,8 +2,10 @@ import itertools
 import unittest
 from unittest import TestCase
 import api
-from typing import Iterable
+from typing import Iterable, List
 from fractions import Fraction
+
+import conveyor_nodes
 
 
 def combinations_up_to(iterable: list | str,
@@ -76,10 +78,27 @@ class TestArgParse(TestCase):
                             self.parse_args(test_args)
 
 
-class Test(TestCase):
+class InOut(TestCase):
 
-    def test_main_base(self):
-        self.fail()
+    @staticmethod
+    def _test_output(src, dst, given: List[int], out: List[int]):
+        if len(src) != len(given):
+            raise ValueError(f'src and given different lengths: '
+                             f'{len(src)}, {len(given)}')
+        if len(dst) != len(out):
+            raise ValueError(f'dst and out different lengths: '
+                             f'{len(dst)}, {len(out)}')
+        for i in dst:
+            if i.holding in out:
+                out.pop()
+            else:
+                return False
+        return True
 
-    # def test_main(self):
-    #     self.fail()
+    def test_even_split(self):
+        for i in range(2, 500+1):
+            with self.subTest(even_split=i):
+                output = api.main_base(
+                    [Fraction(i)], [60, 120, 270, 480, 780], 4, 3, 3)
+                self.assertTrue(self._test_output(
+                    [], output['end'], [], [1]*i))
