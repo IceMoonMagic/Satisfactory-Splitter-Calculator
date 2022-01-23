@@ -27,15 +27,21 @@ NODE_ATTR = {'Island': {},
 GRAPH_ATTR = {'splines': 'ortho'}
 
 
+def format_float(num, max_dec=4) -> str:
+    if isinstance(num, Fraction):
+        return f'{float(num):.{max_dec}f}'.rstrip('0').rstrip('.')
+    return f'{num:.{max_dec}f}'.rstrip('0').rstrip('.')
+
+
 def graph_nodes(graph, start_nodes: set):
     graphed_nodes = {}
     graphed_edges = set()
     constrain_nodes = set()
 
     node_name = {(0, 0): lambda n: str(n),
-                 (0, 1): lambda n: cn.format_float(n.sum_outs),
+                 (0, 1): lambda n: format_float(n.sum_outs),
                  (0, 2): lambda n: str(n),
-                 (1, 0): lambda n: cn.format_float(n.sum_ins),
+                 (1, 0): lambda n: format_float(n.sum_ins),
                  (1, 1): lambda n: str(n),
                  (1, 2): lambda n: '',
                  (2, 0): lambda n: str(n),
@@ -81,7 +87,7 @@ def graph_nodes(graph, start_nodes: set):
                     # xlabels or normal labels?
                     # xlabels don't work, but labels say to use xlabels
                     graph.edge(src_node.id, curr_node.id,
-                               label=cn.format_float(carrying),
+                               label=format_float(carrying),
                                constraint=str(
                                    curr_node not in constrain_nodes))
                     constrain_nodes.add(curr_node)

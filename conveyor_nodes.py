@@ -15,8 +15,6 @@ class ConveyorNode:
                   (2, 1): 'Merger',
                   (2, 2): 'Merge Splitter'}
 
-    DECIMALS = 4
-
     def __init__(self, holding: Fraction = 0):
         # self.display = display
         # self.multi = display_multi
@@ -28,28 +26,6 @@ class ConveyorNode:
         self.outs = {}
         self.depth = 0
 
-    # def __str__(self) -> str:
-    #     if self.display is not None:
-    #         return self.display
-    #     else:
-    #         return format_float(self.holding * self.multi)
-    #
-    # def __repr__(self) -> str:
-    #     return f'{self.in_links} -> {self.out_links}, {self.holding}' \
-    #            f' | {id(self)}'
-
-    def link_from(self, src: "ConveyorNode", carrying: Fraction = None):
-        self.link(src, self, carrying)
-
-    def unlink_from(self, src: "ConveyorNode", carrying: Fraction = None):
-        self.unlink(src, self, carrying)
-
-    def unlink_from_all(self):
-        for src, links in self.ins.copy().items():
-            for carrying, count in links.copy().items():
-                for _ in range(count):
-                    self.unlink_from(src, carrying)
-
     def link_to(self, dst: "ConveyorNode", carrying: Fraction = None):
         self.link(self, dst, carrying)
 
@@ -60,7 +36,13 @@ class ConveyorNode:
         for dst, links in self.outs.copy().items():
             for carrying, count in links.copy().items():
                 for _ in range(count):
-                    self.unlink_to(dst, carrying)
+                    self.unlink(self, dst, carrying)
+
+    def unlink_from_all(self):
+        for src, links in self.ins.copy().items():
+            for carrying, count in links.copy().items():
+                for _ in range(count):
+                    self.unlink(src, self, carrying)
 
     @staticmethod
     def link(src: "ConveyorNode", dst: "ConveyorNode",
@@ -172,9 +154,11 @@ class ConveyorNode:
     def splits_evenly(self) -> bool:
         target = self.sum_outs / self.out_links
         for out in self.outs.values():
-            for amount in out:
-                if target != amount:
-                    return False
+            if any(target != amount for amount in out):
+                return False
+            # for amount in out:
+            #     if target != amount:
+            #         return False
         return True
 
     @property
@@ -242,60 +226,6 @@ class ConveyorNode:
             find_nodes(start_node)
 
         return all_nodes, all_edges
-
-
-def format_float(num, max_dec=4) -> str:
-    if isinstance(num, Fraction):
-        return f'{float(num):.{max_dec}f}'.rstrip('0').rstrip('.')
-    return f'{num:.{max_dec}f}'.rstrip('0').rstrip('.')
-
-
-def to_fraction(value: int | List[int] | Tuple[int]) -> Fraction:
-    """Standardizes the numbers into a [numerator, denominator] 'fraction'."""
-    if isinstance(value, (int, float)):
-        return Fraction(value)
-    elif not isinstance(value, (tuple, list)):
-        raise TypeError('Targets should an int, float, or tuple/list of 1 to '
-                        f'3 elements, got {type(value)}.')
-    elements = len(value)
-    # if elements == 1:
-    #     return [value[0], 1]
-    # elif elements == 2:
-    #     return list(value)
-    if 1 <= elements <= 2:
-        return Fraction(*value)
-    elif elements == 3:
-        whole = value[0]
-        num = value[1]
-        den = value[2]
-        return Fraction(whole * den + num, den)
-    else:
-        raise ValueError('Targets should an int, float, or tuple/list of 1 to '
-                         f'3 elements, got {elements}.')
-
-
-def from_fraction(value: int | float | List[int] | Tuple[int]) -> float:
-    """Returns the actual value of the 'fraction' that was given."""
-    if isinstance(value, Fraction):
-        return float(value)
-    elif isinstance(value, (int, float)):
-        return value
-    elif not isinstance(value, (tuple, list)):
-        raise TypeError('Targets should an int or tuple/list of 1 to '
-                        f'3 elements, got {type(value)}.')
-    elements = len(value)
-    if elements == 1:
-        return value[0]
-    elif elements == 2:
-        return value[0] / value[1]
-    elif elements == 3:
-        whole = value[0]
-        num = value[1]
-        den = value[2]
-        return whole + (num / den)
-    else:
-        raise ValueError('Targets should an int, float, or tuple/list of 1 to '
-                         f'3 elements, got {elements}.')
 
 
 def ratio(*targets: Fraction) -> List[int]:
@@ -480,7 +410,7 @@ def smart_split(root_node: ConveyorNode, remove_splits: List[List[int]],
         else:
             merger = ConveyorNode()
             for node in these_nodes:
-                merger.link_from(node)
+                node.link_to(merger)
             simp_nodes.append(merger)
 
     if sum(end_ratio) > 1:
@@ -488,17 +418,16 @@ def smart_split(root_node: ConveyorNode, remove_splits: List[List[int]],
         out_nodes = even_merge(out_nodes, end_ratio, max_merge, True)
         if len(simp_nodes) != len(out_nodes):
             raise ValueError
-        for true_out, almost_out in zip(simp_nodes, out_nodes):
-            # Adds another node between the splitter and destination so the
+        for smart_out, merge_out in zip(simp_nodes, out_nodes):
+            # smart_out gets turned into a 'Pass Through' node so the
             # connection doesn't get removed but cut_excess.
-            spacer = ConveyorNode()
-            true_out.link_to(spacer)
-            spacer.link_from(almost_out)
+            new_out = ConveyorNode()
+            merge_out.link_to(new_out)
+            smart_out.link_to(new_out)
 
 
 def simplify_graph(start_nodes: Set[ConveyorNode], max_merge: int = 3) \
         -> Dict[str, Set[ConveyorNode]]:
-
     key_nodes = {'start': start_nodes, 'end': set(),
                  'islands': set(), 'removed': set()}
 
@@ -540,7 +469,7 @@ def simplify_graph(start_nodes: Set[ConveyorNode], max_merge: int = 3) \
             case 'Source Splitter':
                 output = curr_node.sum_outs
                 from_node = ConveyorNode(output)
-                curr_node.link_from(from_node)
+                from_node.link_to(curr_node)
                 curr_node.holding -= output
 
             case 'Destination':
@@ -557,8 +486,10 @@ def simplify_graph(start_nodes: Set[ConveyorNode], max_merge: int = 3) \
                     curr_node.unlink_to(
                         dst_node, next(iter(curr_node.outs[dst_node])))
                 while curr_node in src_node.outs:
-                    curr_node.unlink_from(
-                        src_node, next(iter(curr_node.ins[src_node])))
+                    # curr_node.unlink_from(
+                    #     src_node, next(iter(curr_node.ins[src_node])))
+                    src_node.unlink_to(
+                        curr_node, next(iter(curr_node.ins[src_node])))
 
                 src_node.link_to(dst_node, relink)
                 key_nodes['removed'].add(curr_node)
@@ -648,7 +579,7 @@ def simplify_graph(start_nodes: Set[ConveyorNode], max_merge: int = 3) \
             for unlink_src, unlink_dst in recurse_cut:
                 if unlink_dst is not node:
                     raise ValueError
-                node.unlink_from(unlink_src)
+                unlink_src.unlink_to(node)
             only_child = next(iter(children))
             if only_child not in cut_nodes:
                 cut_nodes[only_child] = set()

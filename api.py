@@ -45,7 +45,8 @@ def main_base(into: Sequence[Fraction],
 
     root_node = cn.ConveyorNode(sum(into))
     to_node = cn.ConveyorNode()
-    to_node.link_from(root_node)
+    root_node.link_to(to_node)
+    # to_node.link_from(root_node)
 
     if len(into) > 1:
         remove, ratio = itemgetter('remove', 'ratio')(
