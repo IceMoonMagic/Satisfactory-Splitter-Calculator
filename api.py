@@ -1,11 +1,12 @@
+#!/usr/bin/env python3.10
+
 import argparse
 import json
 from fractions import Fraction
 from operator import itemgetter
-from typing import Sequence, Dict, Set
+from typing import Sequence
 
 import conveyor_nodes as cn
-from conveyor_nodes import ConveyorNode
 
 
 def create_arg_parser() -> argparse.ArgumentParser:
@@ -33,8 +34,10 @@ def create_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main_base(into: Sequence[Fraction], belts: Sequence[int], mk: int,
-              max_split: int, max_merge: int) -> dict[str, set[ConveyorNode]]:
+def main_base(into: Sequence[Fraction],
+              belts: Sequence[int], mk: int,
+              max_split: int, max_merge: int) \
+        -> dict[str, set[cn.ConveyorNode]]:
     if not len(into) > 0:
         raise ValueError(f'No inputs provided.')
     if not all([i > 0 for i in into]):

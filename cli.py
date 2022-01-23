@@ -1,3 +1,5 @@
+#!/usr/bin/env python3.10
+
 import argparse
 from fractions import Fraction
 from operator import itemgetter
@@ -212,8 +214,7 @@ def main_cli():
 
 if __name__ == '__main__':
 
-    if len(argv) > 1:
-        if argv[1].endswith(('.json', 'yaml')):
-            main_file(argv[1])
-        else:
-            main_cli()
+    if len(argv) > 1 and argv[1].endswith(('.json', 'yaml')):
+        main_file(argv[1])
+    else:
+        main_cli()

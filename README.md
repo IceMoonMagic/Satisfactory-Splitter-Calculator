@@ -21,9 +21,11 @@ If you want to, you can find another way to graph the output, but at that point 
 
 ## Usage
 
+Unix (Linux & Mac) users may omit explicitly calling the python interpreter. E.g. `./api.py ...` instead of `python api.py ...`
+
 ### JSON Output
 Run `api.py` in some sort of console / shell. Just enter the desired outputs as arguments (if ony one is present, evenly splits).
-Other flags allow for customization of highest available default belt, alternate belts, max splits per splitter, max merges, and a save to file.
+Other flags allow for customization of the highest available default belt, alternate belts, max splits per splitter, max merges, and a save to file.
 Check `-h` or `--help` for more details.
 
 Ex:
