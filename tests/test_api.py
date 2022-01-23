@@ -1,11 +1,8 @@
 import itertools
-import unittest
 from unittest import TestCase
 import api
-from typing import Iterable, List
+from typing import List
 from fractions import Fraction
-
-import conveyor_nodes
 
 
 def combinations_up_to(iterable: list | str,
