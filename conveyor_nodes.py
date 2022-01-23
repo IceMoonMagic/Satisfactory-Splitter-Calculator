@@ -418,8 +418,9 @@ def even_split(root_node: ConveyorNode, out_amount: int, max_spit: int = 3) \
             if into % s == 0:
                 for i in range(s):
                     new_node = ConveyorNode()
+                    new_back, back = back[:into // s], back[into // s:]
                     node.link_to(new_node, node.split_into(s))
-                    _split(new_node, into // s, back if i == 0 else [])
+                    _split(new_node, into // s, new_back)
                 return
         else:
             back.append(node)
