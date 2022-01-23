@@ -77,28 +77,23 @@ class TestArgParse(TestCase):
 
 class InOut(TestCase):
 
-    @staticmethod
-    def _test_output(src, dst, given: List[int], out: List[int]):
-        if len(src) != len(given):
-            raise ValueError(f'src and given different lengths: '
-                             f'{len(src)}, {len(given)}')
-        if len(dst) != len(out):
-            raise ValueError(f'dst and out different lengths: '
-                             f'{len(dst)}, {len(out)}')
+    def _test_output(self, src, dst,
+                     given: List[Fraction], out: List[Fraction]):
+        self.assertEqual(len(src), len(given))
+        self.assertEqual(len(dst), len(out))
+
+        test_out = out.copy()
         for i in dst:
-            if i.holding in out:
-                out.pop()
-            else:
-                return False
-        return True
+            self.assertIn(i.holding, test_out, out)
+            test_out.remove(i.holding)
 
     def test_even_split(self):
         for i in range(2, 500+1):
             with self.subTest(even_split=i):
                 output = api.main_base(
                     [Fraction(i)], [60, 120, 270, 480, 780], 4, 3, 3)
-                self.assertTrue(self._test_output(
-                    [], output['end'], [], [1]*i))
+                self._test_output(
+                    [], output['end'], [], [Fraction(1) for _ in range(i)])
 
     def test_split_into(self):
         for i in combinations_up_to(['5', '8', '30', '64',
@@ -107,4 +102,7 @@ class InOut(TestCase):
                 continue
             fractions = [Fraction(j) for j in i]
             with self.subTest(f'{i} -> {fractions}'):
-                api.main_base(fractions, [60, 120, 270, 480, 780], 4, 3, 3)
+                output = api.main_base(fractions, [60, 120, 270, 480, 780],
+                                       4, 3, 3)
+                self._test_output(output['start'], output['end'],
+                                  [sum(fractions)], fractions)
