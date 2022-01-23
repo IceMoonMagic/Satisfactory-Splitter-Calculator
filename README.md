@@ -3,7 +3,7 @@
 A tool to help calculate how to split conveyors in Satisfactory into specific ratios.
 
 ## Dependencies
-[Python 3.9](https://python.org)
+[Python 3.10](https://python.org)
 
 ### Just JSON Output (via api.py)
 Nothing else, everything used is built into python.

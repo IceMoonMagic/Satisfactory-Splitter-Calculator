@@ -1,8 +1,7 @@
 import math
-from decimal import Decimal
 from fractions import Fraction
 from sys import argv
-from typing import Union, List, Dict, Sequence, Set, Tuple
+from typing import List, Dict, Sequence, Set, Tuple
 
 
 class ConveyorNode:
@@ -206,7 +205,7 @@ class ConveyorNode:
 
     @classmethod
     def to_json(cls, start_nodes: set) -> \
-            Tuple[Dict[int, Dict[str, Union[int, float, str]]],
+            Tuple[Dict[int, Dict[str, int | float | str]],
                   List[List[int]]]:
         all_nodes = {}
         all_edges = []
@@ -251,7 +250,7 @@ def format_float(num, max_dec=4) -> str:
     return f'{num:.{max_dec}f}'.rstrip('0').rstrip('.')
 
 
-def to_fraction(value: Union[int, List[int], Tuple[int]]) -> Fraction:
+def to_fraction(value: int | List[int] | Tuple[int]) -> Fraction:
     """Standardizes the numbers into a [numerator, denominator] 'fraction'."""
     if isinstance(value, (int, float)):
         return Fraction(value)
@@ -275,7 +274,7 @@ def to_fraction(value: Union[int, List[int], Tuple[int]]) -> Fraction:
                          f'3 elements, got {elements}.')
 
 
-def from_fraction(value: Union[int, float, List[int], Tuple[int]]) -> float:
+def from_fraction(value: int | float | List[int] | Tuple[int]) -> float:
     """Returns the actual value of the 'fraction' that was given."""
     if isinstance(value, Fraction):
         return float(value)
@@ -499,87 +498,107 @@ def smart_split(root_node: ConveyorNode, remove_splits: List[List[int]],
 
 def simplify_graph(start_nodes: Set[ConveyorNode], max_merge: int = 3) \
         -> Dict[str, Set[ConveyorNode]]:
-    def island(node: ConveyorNode):
-        if node.holding != 0:
-            key_nodes['islands'].add(node)
-        else:
-            key_nodes['removed'].add(node)
-
-    def source_splitter(node: ConveyorNode):
-        output = node.sum_outs
-        from_node = ConveyorNode(output)
-        node.link_from(from_node)
-        node.holding -= output
-
-    def pass_through(node: ConveyorNode):
-        src_node = next(iter(node.ins))
-        dst_node = next(iter(node.outs))
-
-        relink = node.sum_outs
-
-        while node in dst_node.ins:
-            node.unlink_to(dst_node, next(iter(node.outs[dst_node])))
-        while node in src_node.outs:
-            node.unlink_from(src_node, next(iter(node.ins[src_node])))
-
-        src_node.link_to(dst_node, relink)
-        key_nodes['removed'].add(node)
-        if node.holding != 0:
-            print('removed a node that was holding something...')
-
-    def merge_dst(node: ConveyorNode):
-        to_node = ConveyorNode()
-        node.link_to(to_node)
-        key_nodes['end'].add(to_node)
-
-    def merge_split(node: ConveyorNode):
-        to_node = ConveyorNode()
-        remove = []
-        for dst_node, links in node.outs.items():
-            for carrying, count in links.items():
-                for _ in range(count):
-                    to_node.link_to(dst_node, carrying)
-                    remove.append((dst_node, carrying))
-        for dst_node, carrying in remove:
-            dst_node.unlink_from(node, carrying)
-
-    def source(node: ConveyorNode):
-        key_nodes['start'].add(node)
-
-    def destination(node: ConveyorNode):
-        key_nodes['end'].add(node)
 
     key_nodes = {'start': start_nodes, 'end': set(),
                  'islands': set(), 'removed': set()}
 
     seen_nodes = set()
 
-    operations = {(0, 0): island,
-                  (0, 1): source,
-                  (0, 2): source_splitter,
-                  (1, 0): destination,
-                  (1, 1): pass_through,
-                  # (1, 2): splitter,
-                  (2, 0): merge_dst,
-                  # (2, 1): merger,
-                  (2, 2): merge_split}
+    # operations = {(0, 0): 'island',
+    #               (0, 1): 'source',
+    #               (0, 2): 'source_splitter',
+    #               (1, 0): 'destination',
+    #               (1, 1): 'pass_through',
+    #               (1, 2): 'splitter',
+    #               (2, 0): 'merge_dst',
+    #               (2, 1): 'merger',
+    #               (2, 2): 'merge_split'}
 
     done = False
 
-    def _simplify(curr_node):
+    def _simplify(curr_node: ConveyorNode):
         if curr_node in seen_nodes:
             return
         seen_nodes.add(curr_node)
 
-        # ToDo: Use node's builtin node type.
         # ToDo: Add merge limit.
-        node_type = (min(len(curr_node.ins), 2),
-                     min(len(curr_node.outs), 2))
-        if node_type in operations:
-            operations[node_type](curr_node)
-            if node_type not in {(1, 0), (0, 1)}:
-                nonlocal done
-                done = False
+
+        did_something = True
+
+        # match node_type:
+        match curr_node.node_type:
+            case 'Island':
+                if curr_node.holding != 0:
+                    key_nodes['islands'].add(curr_node)
+                else:
+                    key_nodes['removed'].add(curr_node)
+
+            case 'Source':
+                key_nodes['start'].add(curr_node)
+                did_something = False
+
+            case 'Source Splitter':
+                output = curr_node.sum_outs
+                from_node = ConveyorNode(output)
+                curr_node.link_from(from_node)
+                curr_node.holding -= output
+
+            case 'Destination':
+                key_nodes['end'].add(curr_node)
+                did_something = False
+
+            case 'Pass Through':
+                src_node = next(iter(curr_node.ins))
+                dst_node = next(iter(curr_node.outs))
+
+                relink = curr_node.sum_outs
+
+                while curr_node in dst_node.ins:
+                    curr_node.unlink_to(
+                        dst_node, next(iter(curr_node.outs[dst_node])))
+                while curr_node in src_node.outs:
+                    curr_node.unlink_from(
+                        src_node, next(iter(curr_node.ins[src_node])))
+
+                src_node.link_to(dst_node, relink)
+                key_nodes['removed'].add(curr_node)
+                if curr_node.holding != 0:
+                    print('removed a node that was holding something...')
+
+            case 'Splitter' | 'Uneven Splitter':
+                did_something = False
+
+            case 'Merger Destination':
+                to_node = ConveyorNode()
+                curr_node.link_to(to_node)
+                key_nodes['end'].add(to_node)
+
+            case 'Merger':
+                did_something = False
+
+            case 'Merge Splitter':
+                to_node = ConveyorNode()
+                remove = []
+                for dst_node, links in curr_node.outs.items():
+                    for carrying, count in links.items():
+                        for _ in range(count):
+                            to_node.link_to(dst_node, carrying)
+                            remove.append((dst_node, carrying))
+                for dst_node, carrying in remove:
+                    dst_node.unlink_from(curr_node, carrying)
+
+            case _:
+                raise ValueError
+
+        if did_something:
+            nonlocal done
+            done = False
+
+        # if node_type in operations:
+        #     operations[node_type](curr_node)
+        #     if node_type not in {(1, 0), (0, 1)}:
+        #         nonlocal done
+        #         done = False
 
         for dst_node in curr_node.outs.copy():
             _simplify(dst_node)
@@ -590,7 +609,7 @@ def simplify_graph(start_nodes: Set[ConveyorNode], max_merge: int = 3) \
         def _cut_excess(node: ConveyorNode, traced: Set[ConveyorNode]):
             def scan_excess(curr_node: ConveyorNode,
                             trace: Set[ConveyorNode]) \
-                    -> List[Union[Set[ConveyorNode], Tuple[ConveyorNode]]]:
+                    -> List[Set[ConveyorNode] | Tuple[ConveyorNode]]:
                 if curr_node.out_links == 0:
                     return [{curr_node}, set()]
                 if curr_node in trace:
