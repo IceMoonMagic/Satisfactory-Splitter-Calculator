@@ -2,9 +2,10 @@ import argparse
 import json
 from fractions import Fraction
 from operator import itemgetter
-from typing import Sequence
+from typing import Sequence, Dict, Set
 
 import conveyor_nodes as cn
+from conveyor_nodes import ConveyorNode
 
 
 def create_arg_parser() -> argparse.ArgumentParser:
@@ -33,8 +34,7 @@ def create_arg_parser() -> argparse.ArgumentParser:
 
 
 def main_base(into: Sequence[Fraction], belts: Sequence[int], mk: int,
-              max_split: int, max_merge: int) -> cn.ConveyorNode:
-
+              max_split: int, max_merge: int) -> dict[str, set[ConveyorNode]]:
     if not len(into) > 0:
         raise ValueError(f'No inputs provided.')
     if not all([i > 0 for i in into]):
@@ -53,18 +53,17 @@ def main_base(into: Sequence[Fraction], belts: Sequence[int], mk: int,
             raise ValueError(f'{into[0]} is not a natural number / int.')
         cn.even_split(to_node, int(into[0]), max_split)
 
-    cn.simplify_graph({root_node})
-    return root_node
+    return cn.simplify_graph({root_node})
 
 
 def main(*args):
     parser = create_arg_parser()
     args = parser.parse_args(*args)
 
-    root_node = main_base(into=args.into, belts=args.belts, mk=args.mk,
-                          max_split=args.max_split, max_merge=args.max_merge)
+    output = main_base(into=args.into, belts=args.belts, mk=args.mk,
+                       max_split=args.max_split, max_merge=args.max_merge)
 
-    as_json = cn.ConveyorNode.to_json({root_node})
+    as_json = cn.ConveyorNode.to_json(output['start'])
     if args.to_file == '':
         print(json.dumps(as_json))
     else:

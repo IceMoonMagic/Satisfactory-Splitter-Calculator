@@ -158,10 +158,10 @@ def main_file(filename):
                         calc[i] = Fraction(e)
             except (TypeError, StopIteration):
                 raise ValueError('File has nothing to calculate.')
-            root_node = api.main_base(calc, *itemgetter('belts', 'mk',
-                                                        'max_split',
-                                                        'max_merge')(config))
-            quick_graph(do['Calculate'], {root_node},
+            output = api.main_base(calc, *itemgetter('belts', 'mk',
+                                                     'max_split',
+                                                     'max_merge')(config))
+            quick_graph(do['Calculate'], output['start'],
                         engine=config['engine'], format=config['format'])
             if 'Save Nodes' in do and do['Save Nodes']:
                 print('Save Nodes has been replaced with '
@@ -203,9 +203,9 @@ def main_cli():
     del args_copy['into']
     del args_copy['to_file']
     del args_copy['lines']
-    root_node = api.main_base(*itemgetter('into', 'belts', 'mk', 'max_split',
-                                          'max_merge')(vars(args)))
-    quick_graph(args.to_file, {root_node},
+    output = api.main_base(*itemgetter('into', 'belts', 'mk', 'max_split',
+                                       'max_merge')(vars(args)))
+    quick_graph(args.to_file, output['start'],
                 engine=args.engine, format=args.format,
                 graph_attr={**GRAPH_ATTR, 'splines': args.lines})
 
