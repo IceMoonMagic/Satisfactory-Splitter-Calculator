@@ -102,3 +102,12 @@ class InOut(TestCase):
                     [Fraction(i)], [60, 120, 270, 480, 780], 4, 3, 3)
                 self.assertTrue(self._test_output(
                     [], output['end'], [], [1]*i))
+
+    def test_split_into(self):
+        for i in combinations_up_to(['5', '8', '30', '64',
+                                     '1/3', '5/2', '1.25']):
+            if len(i) == 1:
+                continue
+            fractions = [Fraction(j) for j in i]
+            with self.subTest(f'{i} -> {fractions}'):
+                api.main_base(fractions, [60, 120, 270, 480, 780], 4, 3, 3)
