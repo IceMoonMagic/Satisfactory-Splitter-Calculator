@@ -1,5 +1,6 @@
 import Decimal from 'decimal.js';
-
+import { lcm, gcd } from 'mathjs';
+// var Decimal = require('decimal.js')
 
 
 // type ConveyorLink = Map<ConveyorNode, Map<Decimal, number>>
@@ -24,7 +25,7 @@ class ConveyorLink {
 
         src.holding = src.holding.minus(carrying)
         dst.holding = dst.holding.plus(carrying)
-        src.ins.push(this)
+        src.outs.push(this)
         dst.ins.push(this)
 
         if (dst.outs.length <= 1){
@@ -56,8 +57,8 @@ class ConveyorNode {
     ins: ConveyorLink[]
     outs: ConveyorLink[]
 
-    private static _ids: WeakMap<ConveyorNode, bigint> = new WeakMap()
-    private static _curr_id: bigint = 0n
+    private static _ids: WeakMap<ConveyorNode, number> = new WeakMap()
+    private static _curr_id: number = 0
 
 
     constructor(holding: Decimal = new Decimal(0)) {
@@ -110,7 +111,16 @@ class ConveyorNode {
 
     get splittable(): Decimal {return this.outs.length > 0 ? this.outs[0].carrying : this.holding}
 
-    get id(): bigint {
+    public split_into(r: Decimal | number): Decimal {
+        if (this.holding === new Decimal(0)) {
+            return this.holding
+        } else if (this.outs.length > 0) {
+            return this.splittable
+        } 
+        return this.holding.div(r)
+    }
+
+    get id(): number {
         let id = ConveyorNode._ids.get(this)
         if (id === undefined) {
             id = ConveyorNode._curr_id++
@@ -118,4 +128,100 @@ class ConveyorNode {
         }
         return id
     }
+}
+
+function to_dot(root_node) {
+    let edges: ConveyorLink[] = new Array()
+    let nodes: ConveyorNode[] = new Array()
+    let constraints: ConveyorNode[] = new Array()
+    function _to_dot(curr_node: ConveyorNode) {
+        if (nodes.indexOf(curr_node) === -1) {
+            nodes.push(curr_node)
+            curr_node.outs.forEach(e => edges.push(e))
+            curr_node.outs.forEach(e => _to_dot(e.dst))
+        }
+    }
+    _to_dot(root_node)
+    let output: string = "digraph G {\n"
+    for (let node of nodes) {
+        output += "\t" + node.id + " [label=\"" + node.sum_ins + "\"];\n"
+    }
+    for (let edge of edges) {
+        output += "\t" + edge.src.id + " -> " + edge.dst.id + ";\n"
+    }
+    return output + "}"
+}
+
+function ratio(targets: Decimal[]): Decimal[] {
+    let numerators: Decimal[] = new Array()
+    let denominators: Decimal[] = new Array()
+    for (let value of targets) {
+        let [numerator, denominator] = value.toFraction()
+        numerators.push(numerator)
+        denominators.push(denominator)
+    }
+    
+    // ToDo: Local lcm & gcd implementaions
+    let lcd = denominators.reduce((_lcm, element) => lcm(_lcm, element))
+
+    for (let index in numerators) {
+        let by = lcd.dividedToIntegerBy(denominators[index])
+        numerators[index] = numerators[index].mul(by)
+        denominators[index] = denominators[index].mul(by)
+    }
+
+    let gcf = numerators.reduce((_gcd, element) => gcd(_gcd, element))
+
+    for (let numerator in numerators) {
+        numerators[numerator] = numerators[numerator].dividedToIntegerBy(gcf)
+    }
+
+    return numerators
+}
+
+function even_split(root_node: ConveyorNode, out_amount: number, max_split: number = 3): ConveyorNode[] {
+    let near_nodes = []
+    let multiplier = root_node.holding.div(out_amount)
+
+    function _split(node: ConveyorNode, into: number, back: ConveyorNode[]): void {
+        if (into < 2) {throw new Error()}
+
+        if (into <= max_split) {
+            let target = into - back.length
+            console.log(target, into, back.length)
+            for (let i = 0; i < target; i++) {
+                let new_node = new ConveyorNode()
+                node.link_to(new_node, node.split_into(into))
+                near_nodes.push(new_node)
+            }
+            for (let b of back) {
+                node.link_to(b, node.split_into(into))
+                console.log("back accounted for")
+            }
+            return
+        }
+
+        for (let s = 2; s <= max_split; s++) {
+            if (into % s == 0) {
+                for (let i = 0; i < s; i++) {
+                    console.log(back.length)
+                    let new_node = new ConveyorNode()
+                    let new_back = back.splice(0, into / s)
+                    // back = back.slice(into / s)
+                    console.log(back.length, new_back.length)
+                    node.link_to(new_node, node.split_into(s))
+                    _split(new_node, into / s, new_back)
+                }
+                return
+            }
+        }
+
+        back.push(node)
+        let new_node = new ConveyorNode()
+        node.link_to(new_node, node.holding.plus(multiplier))
+        _split(new_node, into + 1, back)
+    }
+
+    _split(root_node, out_amount, new Array())
+    return near_nodes
 }

@@ -1,0 +1,9 @@
+{
+    "compilerOptions": {
+      "esModuleInterop": true,
+      "moduleResolution": "node",
+      "lib": ["ES2018", "DOM"]
+    },
+    "include": ["/**/*.ts"],
+    "exclude": ["node_modules"],
+  }

@@ -1,2 +1,7 @@
 /debug/
 /debug.yaml
+
+__pycache__/*
+web/node_modules/*
+/tests/debug/*
+.*
