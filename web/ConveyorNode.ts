@@ -68,7 +68,7 @@ class ConveyorNode {
     }
 
 
-    public link_to(dst: ConveyorNode, carrying: Decimal | undefined) {
+    public link_to(dst: ConveyorNode, carrying: Decimal | undefined = undefined) {
         new ConveyorLink(this, dst, carrying)
     }
 
@@ -96,8 +96,13 @@ class ConveyorNode {
             return total
     }
 
-    get sum_ins(): Decimal {return new Decimal(ConveyorNode._sum_connections(this.ins))}
-    get sum_outs(): Decimal {return new Decimal(ConveyorNode._sum_connections(this.outs))}
+    get sum_ins(): Decimal {
+        return new Decimal(ConveyorNode._sum_connections(this.ins))
+    }
+
+    get sum_outs(): Decimal {
+        return new Decimal(ConveyorNode._sum_connections(this.outs))
+    }
 
     get splits_evenly(): boolean {
         let target: Decimal = this.sum_outs.div(this.outs.length)
@@ -109,7 +114,9 @@ class ConveyorNode {
         return true
     }
 
-    get splittable(): Decimal {return this.outs.length > 0 ? this.outs[0].carrying : this.holding}
+    get splittable(): Decimal {
+        return this.outs.length > 0 ? this.outs[0].carrying : this.holding
+    }
 
     public split_into(r: Decimal | number): Decimal {
         if (this.holding === new Decimal(0)) {
@@ -179,16 +186,23 @@ function ratio(targets: Decimal[]): Decimal[] {
     return numerators
 }
 
-function even_split(root_node: ConveyorNode, out_amount: number, max_split: number = 3): ConveyorNode[] {
-    let near_nodes = []
+function even_split(
+        root_node: ConveyorNode,
+        out_amount: number,
+        max_split: number = 3)
+        :ConveyorNode[] {
+    let near_nodes: ConveyorNode[] = []
     let multiplier = root_node.holding.div(out_amount)
 
-    function _split(node: ConveyorNode, into: number, back: ConveyorNode[]): void {
+    function _split(
+            node: ConveyorNode,
+            into: number,
+            back: ConveyorNode[]):
+            void {
         if (into < 2) {throw new Error()}
 
         if (into <= max_split) {
             let target = into - back.length
-            console.log(target, into, back.length)
             for (let i = 0; i < target; i++) {
                 let new_node = new ConveyorNode()
                 node.link_to(new_node, node.split_into(into))
@@ -196,7 +210,6 @@ function even_split(root_node: ConveyorNode, out_amount: number, max_split: numb
             }
             for (let b of back) {
                 node.link_to(b, node.split_into(into))
-                console.log("back accounted for")
             }
             return
         }
@@ -204,11 +217,9 @@ function even_split(root_node: ConveyorNode, out_amount: number, max_split: numb
         for (let s = 2; s <= max_split; s++) {
             if (into % s == 0) {
                 for (let i = 0; i < s; i++) {
-                    console.log(back.length)
                     let new_node = new ConveyorNode()
                     let new_back = back.splice(0, into / s)
-                    // back = back.slice(into / s)
-                    console.log(back.length, new_back.length)
+                    back = back.slice(into / s)
                     node.link_to(new_node, node.split_into(s))
                     _split(new_node, into / s, new_back)
                 }
@@ -224,4 +235,37 @@ function even_split(root_node: ConveyorNode, out_amount: number, max_split: numb
 
     _split(root_node, out_amount, new Array())
     return near_nodes
+}
+
+function even_merge(
+        end_nodes: ConveyorNode[],
+        into: Decimal[], max_merge = 3,
+        respect_order = false)
+        :ConveyorNode[] {
+    if (! respect_order) {
+        into.sort()
+    }
+    let ends: ConveyorNode[] = []
+    
+    function _merge(remaining_nodes: ConveyorNode[]): ConveyorNode {
+        let to_node = new ConveyorNode()
+        for (let i = 0; i < max_merge && remaining_nodes.length > 0; i++) {
+            remaining_nodes.splice(0, 1)[0].link_to(to_node)
+        }
+        if (remaining_nodes.length > 0) {
+            remaining_nodes.push(to_node)
+            return _merge(remaining_nodes)
+        }
+        return to_node
+    }
+
+    console.log(_merge)
+    
+    for (let i = 0, start = 0; i < into.length; i++) {
+        console.log(_merge)
+        let end = start + into[i].toNumber()
+        let merged = _merge(end_nodes.slice(start, end))
+        ends.push(merged)
+    }
+    return ends
 }
