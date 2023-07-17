@@ -38,7 +38,7 @@ class ConveyorLink {
     public remove_link(): void {
         this.src.holding = this.src.holding.plus(this.carrying)
         this.dst.holding = this.dst.holding.minus(this.carrying)
-        this.src.ins.splice(this.src.ins.indexOf(this), 1)
+        this.src.outs.splice(this.src.outs.indexOf(this), 1)
         this.dst.ins.splice(this.dst.ins.indexOf(this), 1)
 
         let new_depth = 0
@@ -48,6 +48,19 @@ class ConveyorLink {
             }
         }
     }
+}
+
+
+enum NODE_TYPES {
+    Island = '0,0',
+    Source = '0,1',
+    Source_Splitter = '0,2',
+    Destination = '1,0',
+    Pass_Through = '1,1',
+    Splitter = '1,2',
+    Merger_Destination = '2,0',
+    Merger = '2,1',
+    Merge_Splitter = '2,2',
 }
 
 class ConveyorNode {
@@ -77,14 +90,14 @@ class ConveyorNode {
     }
 
     public unlink_to_all() {
-        for (let out of this.outs) {
-            out.remove_link()
+        while (this.outs.length != 0) {
+            this.outs[0].remove_link()
         }
     }
 
     public unlink_from_all() {
-        for (let _in of this.ins) {
-            _in.remove_link()
+        while (this.ins.length != 0) {
+            this.ins[0].remove_link()
         }
     }
 
@@ -135,12 +148,18 @@ class ConveyorNode {
         }
         return id
     }
+
+    get node_type(): string {
+        return [
+                Math.min(this.ins.length, 2),
+                Math.min(this.outs.length, 2)
+            ].toString()
+    }
 }
 
-function to_dot(root_node) {
-    let edges: ConveyorLink[] = new Array()
-    let nodes: ConveyorNode[] = new Array()
-    let constraints: ConveyorNode[] = new Array()
+function to_dot(root_nodes: ConveyorNode[]) {
+    const edges: ConveyorLink[] = new Array()
+    const nodes: ConveyorNode[] = new Array()
     function _to_dot(curr_node: ConveyorNode) {
         if (nodes.indexOf(curr_node) === -1) {
             nodes.push(curr_node)
@@ -148,13 +167,13 @@ function to_dot(root_node) {
             curr_node.outs.forEach(e => _to_dot(e.dst))
         }
     }
-    _to_dot(root_node)
+    root_nodes.forEach(e => (_to_dot(e)))
     let output: string = "digraph G {\n"
     for (let node of nodes) {
-        output += "\t" + node.id + " [label=\"" + node.sum_ins + "\"];\n"
+        output += `\t${node.id} [label="${node.sum_ins}|${node.holding}|${node.sum_outs}"];\n`
     }
     for (let edge of edges) {
-        output += "\t" + edge.src.id + " -> " + edge.dst.id + ";\n"
+        output += `\t${edge.src.id} -> ${edge.dst.id};\n`
     }
     return output + "}"
 }
@@ -199,7 +218,7 @@ function even_split(
             into: number,
             back: ConveyorNode[]):
             void {
-        if (into < 2) {throw new Error()}
+        if (into < 2) {throw new Error('into < 2')}
 
         if (into <= max_split) {
             let target = into - back.length
@@ -237,35 +256,284 @@ function even_split(
     return near_nodes
 }
 
-function even_merge(
-        end_nodes: ConveyorNode[],
-        into: Decimal[], max_merge = 3,
-        respect_order = false)
-        :ConveyorNode[] {
-    if (! respect_order) {
-        into.sort()
+function merge(
+    merge_nodes: ConveyorNode[],
+    max_merge: number = 3,
+    force_new_node: boolean = false
+): ConveyorNode {
+    let to_node: ConveyorNode = new ConveyorNode()
+    if (!force_new_node) {
+        to_node = merge_nodes.find(n => n.ins.length < max_merge)
+        merge_nodes.splice(merge_nodes.indexOf(to_node), 1)
     }
+    for (
+        let i = to_node.ins.length;
+        i < max_merge && merge_nodes.length > 0;
+        i++
+    ) {
+        merge_nodes.splice(0, 1)[0].link_to(to_node)
+    }
+    if (merge_nodes.length > 0) {
+        merge_nodes.push(to_node)
+        return merge(merge_nodes)
+    }
+    return to_node
+}
+
+function smart_merge(
+    end_nodes: ConveyorNode[],
+    into: Decimal[],
+    max_merge = 3,
+): ConveyorNode[] {
+
     let ends: ConveyorNode[] = []
-    
-    function _merge(remaining_nodes: ConveyorNode[]): ConveyorNode {
-        let to_node = new ConveyorNode()
-        for (let i = 0; i < max_merge && remaining_nodes.length > 0; i++) {
-            remaining_nodes.splice(0, 1)[0].link_to(to_node)
+
+    function _are_children_excess(
+        curr_node: ConveyorNode,
+        path: ConveyorNode[],
+        keep_nodes: ConveyorNode[]
+    ): ConveyorNode[] | null {
+        if (keep_nodes.includes(curr_node)) {
+            return [curr_node]
+        } else if (path.includes(curr_node)) {
+            return []
+        } else if (curr_node.outs.length === 0) {
+            return null
         }
-        if (remaining_nodes.length > 0) {
-            remaining_nodes.push(to_node)
-            return _merge(remaining_nodes)
+        let excess_children = new Array()
+        path.push(curr_node)
+        for (let link of curr_node.outs) {
+            let result = _are_children_excess(link.dst, path, keep_nodes)
+            if (result === null) {
+                return null
+            }
+            result.forEach(e => excess_children.push(e))
         }
-        return to_node
+        return excess_children
     }
 
-    console.log(_merge)
+    function _smart_merge(merge_nodes: ConveyorNode[]): ConveyorNode {
+        for (let i = 0; i < merge_nodes.length; i++) {
+            if (merge_nodes[i].ins.length === 0) {
+                continue
+            }
+            const root = merge_nodes[i].ins[0].src
+            const result = _are_children_excess(root, [], merge_nodes)
+            if (result === null) {
+                continue
+            }
+            for (let node of result) {
+                if (node.ins[0].src === root) {
+                    merge_nodes.splice(merge_nodes.indexOf(node), 1)
+                }
+            }
+            root.unlink_to_all()
+            merge_nodes.push(root)
+            while (root.ins.length > 1) {
+                root.ins[1].remove_link()
+            }
+            i = -1
+        }
+        if (merge_nodes.length > 1) {
+            return merge(merge_nodes, max_merge, false)
+        }
+        return merge_nodes[0]
+    }
     
     for (let i = 0, start = 0; i < into.length; i++) {
-        console.log(_merge)
         let end = start + into[i].toNumber()
-        let merged = _merge(end_nodes.slice(start, end))
+        let merged = _smart_merge(end_nodes.slice(start, end))
         ends.push(merged)
+        start = end
     }
     return ends
+}
+
+function clean_up_graph(
+    start_nodes: ConveyorNode[],
+    max_merge = 3
+): Map<string, ConveyorNode[]> {
+    let seen_nodes: ConveyorNode[] = new Array()
+    let key_nodes: Map<string, ConveyorNode[]> = new Map()
+    key_nodes.set('start', start_nodes)
+    key_nodes.set('end', new Array())
+    key_nodes.set('islands', new Array())
+    // key_nodes.set('removed', new Array())
+
+    function _clean_up(curr_node: ConveyorNode): boolean {
+        if (seen_nodes.includes(curr_node)) {
+            return false
+        }
+        seen_nodes.push(curr_node)
+
+        // ToDo: Add merge limit.
+
+        let change_made: boolean = true
+
+        switch (curr_node.node_type) {
+            case NODE_TYPES.Island:
+                change_made = false
+                break
+            
+            case NODE_TYPES.Source:
+                if (!key_nodes.get('start').includes(curr_node)) {
+                    key_nodes.get('start').push(curr_node)
+                }
+                change_made = false
+                break
+
+            case NODE_TYPES.Source_Splitter:
+                let output = curr_node.sum_outs
+                let from_node = new ConveyorNode(output)
+                from_node.link_to(curr_node)
+                curr_node.holding = curr_node.holding.minus(output)
+                
+                let starts = key_nodes.get('start')
+                starts.splice(starts.indexOf(curr_node), 1)
+                starts.push(from_node)
+                break
+            
+            case NODE_TYPES.Destination:
+                if (!key_nodes.get('end').includes(curr_node)) {
+                    key_nodes.get('end').push(curr_node)
+                }
+                change_made = false
+                break
+
+            case NODE_TYPES.Pass_Through:
+                let src_node: ConveyorNode = curr_node.ins[0].src
+                let dst_node: ConveyorNode = curr_node.outs[0].dst
+                let relink: Decimal = curr_node.ins[0].carrying
+                
+                if (!curr_node.outs[0].carrying.eq(relink)){
+                    console.error(`${curr_node.outs[0].carrying} != ${relink}`, curr_node.holding)
+                    console.error(to_dot(start_nodes), '\n', curr_node.id)
+                    throw new Error('!curr_node.outs[0].carrying.eq(relink)')
+                }
+                
+                curr_node.ins[0].remove_link()
+                curr_node.outs[0].remove_link()
+
+                if (!curr_node.sum_ins.eq(0) || !curr_node.sum_outs.eq(0)) {
+                    throw new Error('unlinked failed' + curr_node)
+                }
+
+                src_node.link_to(dst_node, relink)
+                break
+
+            case NODE_TYPES.Splitter:
+            case NODE_TYPES.Merger:
+                change_made = false
+                break
+
+            case NODE_TYPES.Merger_Destination:
+                let to_node_md = new ConveyorNode()
+                curr_node.link_to(to_node_md)
+                let ends = key_nodes.get('end')
+                ends.splice(ends.indexOf(curr_node))
+                ends.push(to_node_md)
+            
+            case NODE_TYPES.Merge_Splitter:
+                let to_node_ms: ConveyorNode = new ConveyorNode()
+                let carrying: Decimal = curr_node.sum_outs
+
+                for (let out_link of curr_node.outs) {
+                    out_link.remove_link()
+                    to_node_ms.link_to(out_link.dst, out_link.carrying)
+                }
+
+                if (!carrying.eq(curr_node.holding)) {
+                    throw new Error('!carrying.eq(curr_node.holding')
+                }
+
+                curr_node.link_to(to_node_ms, carrying)
+                break
+            
+            default:
+                console.error(curr_node)
+                throw new Error('Unknown Node Type' + curr_node.node_type)
+        }
+
+        curr_node.outs.forEach(l => change_made = _clean_up(l.dst) || change_made)
+        return change_made
+    }
+
+    let done: boolean = false
+    while (!done) {
+        done = true
+        start_nodes.forEach(n => done = !_clean_up(n) && done)
+        seen_nodes = new Array()
+    }
+
+    return key_nodes
+}
+
+function main(
+    into: number[] | Decimal[],
+    max_split: number = 3,
+    max_merge: number = 3
+): ConveyorNode {
+    if (into.length === 0) {
+        throw new Error('No inputs provided.')
+    } else if (
+        into.some(i => i instanceof Decimal ? i.lte(0) : i <= 0)
+    ) {
+        throw new Error('Inputs must be greater than 0')
+    }
+
+    const targets: Decimal[] = new Array(into.length)
+    into.forEach((n, i) => targets[i] = (new Decimal(n)))
+    let total = new Decimal(0)
+    targets.forEach(e => total = total.plus(e))
+    
+    const root_node = new ConveyorNode(total)
+    const src_node = new ConveyorNode()
+    root_node.link_to(src_node)
+
+    if (targets.length > 1) {
+        const nodes = even_split(src_node, total.toNumber(), max_split)
+        smart_merge(nodes, targets, max_merge)
+        const simplified = clean_up_graph([root_node])
+    } else {
+        if (!targets[0].mod(1).eq(0)) {
+            throw new Error(`${targets} is not a natural number / int.`)
+        }
+        even_split(src_node, targets[0].toNumber(), max_split)
+    }
+    return root_node
+}
+
+function main_find_best(
+    into: number[] | Decimal[],
+    max_split: number = 3,
+    max_merge: number = 3
+): ConveyorNode {
+    function* permutations(elements: number[] | Decimal[]) {
+        if (elements.length <= 1) {
+            yield elements
+            return
+        }
+        for (let perm of permutations(elements.slice(1))) {
+            for (let i in elements) {
+                yield perm.slice(0, i)
+                .concat(elements.slice(0, 1))
+                .concat(perm.slice(i))
+            }
+        }
+    }
+
+    let best_root: ConveyorNode
+    let best_lines: number
+
+    for (let into_perm of permutations(into)) {
+        const root_node = main(into_perm, max_split, max_merge)
+        const dot = to_dot([root_node])
+        const lines = (dot.match(/\n/g) || []).length
+        if (best_lines === undefined || lines < best_lines) {
+            best_lines = lines
+            best_root = root_node
+        }
+        console.log(lines, best_lines)
+    }
+    return best_root
 }
