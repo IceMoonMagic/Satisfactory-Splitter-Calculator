@@ -473,9 +473,10 @@ function clean_up_graph(
 
 function main(
     into: Array<number | Decimal>,
+    from: Array<number | Decimal> = undefined,
     max_split: number = 3,
     max_merge: number = 3
-): ConveyorNode {
+): ConveyorNode[] {
     if (into.length === 0) {
         throw new Error('No inputs provided.')
     } else if (
@@ -486,35 +487,63 @@ function main(
 
     const targets: Decimal[] = new Array(into.length)
     into.forEach((n, i) => targets[i] = (new Decimal(n)))
-    const total = targets.reduce((total, value) => total.plus(value))
-    const reduced_targets: Decimal[] = ratio(targets)
-    const reduced_total = reduced_targets.reduce((total, value) => total.plus(value))
-    console.log(reduced_total)
+    const targets_total = Decimal.sum(...targets)
     
-    const root_node = new ConveyorNode(total)
+    from = from || [targets_total]
+    const sources: Decimal[] = new Array(from.length)
+    from.forEach((n, i) => sources[i] = (new Decimal(n)))
+    const sources_total = Decimal.sum(...sources)
+
+    const ratio_targets = ratio(targets.concat(sources))
+    const ratio_sources = ratio_targets.splice(targets.length)
+
+    if (!sources_total.eq(targets_total)) {
+        // ToDo
+        throw new Error('total_souces != total_targets')
+    }
+
+    const root_nodes: ConveyorNode[] = new Array()
+    let split_nodes: ConveyorNode[] = new Array()
+    for (let i in sources) {
+        const root_node = new ConveyorNode(sources[i])
+        root_nodes.push(root_node)
+        const src_node = new ConveyorNode()
+        root_node.link_to(src_node)
+
+        split_nodes = split_nodes.concat(even_split(src_node, ratio_sources[i].toNumber(), max_split))
+    } 
+    console.log(to_dot(root_nodes))
+    smart_merge(split_nodes, ratio_targets, max_merge)
+    clean_up_graph(root_nodes)
+    return root_nodes
+}
+
+function main_split(
+    into: number | Decimal,
+    max_split: number = 3
+): ConveyorNode {
+    const target = new Decimal(into)
+    if (!target.mod(1).eq(0)) {
+        throw new Error(`${target} is not a natural number / int.`)
+    }
+    const root_node = new ConveyorNode(target)
     const src_node = new ConveyorNode()
     root_node.link_to(src_node)
-
-    if (targets.length > 1) {
-        const nodes = even_split(src_node, reduced_total.toNumber(), max_split)
-        console.log(to_dot([root_node]))
-        smart_merge(nodes, reduced_targets, max_merge)
-        const simplified = clean_up_graph([root_node])
-    } else {
-        if (!targets[0].mod(1).eq(0)) {
-            throw new Error(`${targets} is not a natural number / int.`)
-        }
-        even_split(src_node, targets[0].toNumber(), max_split)
-    }
+    even_split(src_node, target.toNumber(), max_split)
     return root_node
 }
 
 function main_find_best(
-    into: number[] | Decimal[],
+    into: Array<number | Decimal>,
+    from: Array<number | Decimal> = undefined,
     max_split: number = 3,
     max_merge: number = 3
-): ConveyorNode {
-    function* permutations(elements: number[] | Decimal[]) {
+): ConveyorNode[] {
+    function* permutations(elements: any[]) {
+        if (elements === undefined) {
+            yield undefined
+            return
+        }
         if (elements.length <= 1) {
             yield elements
             return
@@ -528,18 +557,20 @@ function main_find_best(
         }
     }
 
-    let best_root: ConveyorNode
+    let best_start: ConveyorNode[]
     let best_lines: number
 
     for (let into_perm of permutations(into)) {
-        const root_node = main(into_perm, max_split, max_merge)
-        const dot = to_dot([root_node])
-        const lines = (dot.match(/\n/g) || []).length
-        if (best_lines === undefined || lines < best_lines) {
-            best_lines = lines
-            best_root = root_node
+        for (let from_perm of permutations(from)) {
+            const root_nodes = main(into_perm, from_perm, max_split, max_merge)
+            const dot = to_dot(root_nodes)
+            const lines = (dot.match(/\n/g) || []).length
+            if (best_lines === undefined || lines < best_lines) {
+                best_lines = lines
+                best_start = root_nodes
+            }
+            console.log(lines, best_lines)
         }
-        console.log(lines, best_lines)
     }
-    return best_root
+    return best_start
 }
