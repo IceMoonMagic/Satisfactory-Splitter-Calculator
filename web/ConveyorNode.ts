@@ -263,8 +263,11 @@ function merge(
 ): ConveyorNode {
     let to_node: ConveyorNode = new ConveyorNode()
     if (!force_new_node) {
-        to_node = merge_nodes.find(n => n.ins.length < max_merge)
-        merge_nodes.splice(merge_nodes.indexOf(to_node), 1)
+        const new_to_node = merge_nodes.find(n => n.ins.length < max_merge)
+        if (new_to_node !== undefined) {
+            to_node = new_to_node
+            merge_nodes.splice(merge_nodes.indexOf(to_node), 1)
+        }
     }
     for (
         let i = to_node.ins.length;
@@ -469,7 +472,7 @@ function clean_up_graph(
 }
 
 function main(
-    into: number[] | Decimal[],
+    into: Array<number | Decimal>,
     max_split: number = 3,
     max_merge: number = 3
 ): ConveyorNode {
@@ -483,16 +486,19 @@ function main(
 
     const targets: Decimal[] = new Array(into.length)
     into.forEach((n, i) => targets[i] = (new Decimal(n)))
-    let total = new Decimal(0)
-    targets.forEach(e => total = total.plus(e))
+    const total = targets.reduce((total, value) => total.plus(value))
+    const reduced_targets: Decimal[] = ratio(targets)
+    const reduced_total = reduced_targets.reduce((total, value) => total.plus(value))
+    console.log(reduced_total)
     
     const root_node = new ConveyorNode(total)
     const src_node = new ConveyorNode()
     root_node.link_to(src_node)
 
     if (targets.length > 1) {
-        const nodes = even_split(src_node, total.toNumber(), max_split)
-        smart_merge(nodes, targets, max_merge)
+        const nodes = even_split(src_node, reduced_total.toNumber(), max_split)
+        console.log(to_dot([root_node]))
+        smart_merge(nodes, reduced_targets, max_merge)
         const simplified = clean_up_graph([root_node])
     } else {
         if (!targets[0].mod(1).eq(0)) {
