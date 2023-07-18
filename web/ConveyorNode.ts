@@ -1,9 +1,4 @@
 import Decimal from 'decimal.js';
-import { lcm, gcd } from 'mathjs';
-// var Decimal = require('decimal.js')
-
-
-// type ConveyorLink = Map<ConveyorNode, Map<Decimal, number>>
 
 class ConveyorLink {
     private _src: ConveyorNode
@@ -179,6 +174,21 @@ function to_dot(root_nodes: ConveyorNode[]) {
 }
 
 function ratio(targets: Decimal[]): Decimal[] {
+
+    function gcd(a: Decimal, b: Decimal): Decimal {
+        let r: Decimal;
+        while (a.mod(b).gt(0)) {
+            r = a.mod(b)
+            a = b
+            b = r
+        }
+        return b
+    }
+
+    function lcm (a: Decimal, b: Decimal): Decimal {
+        return a.mul(b).div(gcd(a, b))
+    }
+
     let numerators: Decimal[] = new Array()
     let denominators: Decimal[] = new Array()
     for (let value of targets) {
@@ -187,7 +197,6 @@ function ratio(targets: Decimal[]): Decimal[] {
         denominators.push(denominator)
     }
     
-    // ToDo: Local lcm & gcd implementaions
     let lcd = denominators.reduce((_lcm, element) => lcm(_lcm, element))
 
     for (let index in numerators) {
@@ -512,7 +521,6 @@ function main(
 
         split_nodes = split_nodes.concat(even_split(src_node, ratio_sources[i].toNumber(), max_split))
     } 
-    console.log(to_dot(root_nodes))
     smart_merge(split_nodes, ratio_targets, max_merge)
     clean_up_graph(root_nodes)
     return root_nodes
@@ -569,7 +577,6 @@ function main_find_best(
                 best_lines = lines
                 best_start = root_nodes
             }
-            console.log(lines, best_lines)
         }
     }
     return best_start
