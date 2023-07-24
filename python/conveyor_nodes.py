@@ -227,6 +227,43 @@ class ConveyorNode:
 
         return all_nodes, all_edges
 
+    @staticmethod
+    def to_dot(root_node):
+        edges = []
+        nodes = []
+        
+        def _to_dot(curr_node: ConveyorNode):
+            if curr_node not in nodes:
+                nodes.append(curr_node)
+                for dst_node, links in curr_node.outs.items():
+                    for carrying, times in links.items():
+                        for _ in range(times):
+                            edges.append([
+                                str(id(curr_node)),
+                                str(id(dst_node)),
+                                carrying.as_integer_ratio()])
+                    _to_dot(dst_node)
+        
+        _to_dot(root_node)
+        output = 'digraph G {\n'
+        for node in nodes:
+            output += f'\t{node.id} [label="{node.sum_ins}"];\n'
+        for edge in edges:
+            output += f'\t{edge[0]} -> {edge[1]} [label="{edge[2]}"];\n'
+        return output + '}'
+
+    @classmethod
+    def to_dot_json(cls, root_node):
+        all_nodes, all_edges = cls.to_json({root_node})
+
+        output = 'digraph G {\n'
+        for node in all_nodes:
+            output += f'\t{node} [label="{all_nodes[node]["in sum"]}"];\n'
+        for edge in all_edges:
+            output += f'\t{edge[0]} -> {edge[1]} [label="{edge[2]}"];\n'
+        return output + '}'
+
+
 
 def ratio(*targets: Fraction) -> List[int]:
     #  --- Set Up Fractions ---
@@ -550,12 +587,12 @@ def simplify_graph(start_nodes: Set[ConveyorNode], max_merge: int = 3) \
                 child = [set(), set()]
                 trace.add(curr_node)
                 for link_node in curr_node.outs:
-                    if link_node is node:
+                    if link_node is node:  # Is a cycle
                         child[1] |= {(curr_node, node)}
                         continue
                     child_notes = scan_excess(link_node, trace)
-                    child[0] |= child_notes[0]
-                    child[1] |= child_notes[1]
+                    child[0] |= child_notes[0]  # Children
+                    child[1] |= child_notes[1]  # Children that feed directly into `node`
                 trace.remove(curr_node)
                 return child
 
@@ -568,18 +605,23 @@ def simplify_graph(start_nodes: Set[ConveyorNode], max_merge: int = 3) \
                 children_notes = scan_excess(linked_node, {node})
                 children |= children_notes[0]
                 recurse_cut |= children_notes[1]
-            if len(children) != 1:
+            
+            # Has more than one final child
+            if len(children) != 1:  
                 traced.add(node)
                 for linked_node in node.outs:
                     _cut_excess(linked_node, traced)
                 traced.remove(node)
                 return
 
+            # Has only one final child
             nonlocal cut_nodes
+            # Unlink recursive parent(s)
             for unlink_src, unlink_dst in recurse_cut:
                 if unlink_dst is not node:
                     raise ValueError
                 unlink_src.unlink_to(node)
+            # Designate the nodes to shortcut with
             only_child = next(iter(children))
             if only_child not in cut_nodes:
                 cut_nodes[only_child] = set()
@@ -591,6 +633,7 @@ def simplify_graph(start_nodes: Set[ConveyorNode], max_merge: int = 3) \
 
         nonlocal done
         done = False
+        # Trim out designated shortcut
         for dst_node, src_nodes in cut_nodes.items():
             dst_node.unlink_from_all()
             for src_node in src_nodes:
