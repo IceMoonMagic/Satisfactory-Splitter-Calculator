@@ -1,4 +1,4 @@
-import Decimal from 'decimal.js';
+import { Decimal } from './decimal.js'
 
 class ConveyorLink {
     private _src: ConveyorNode
@@ -507,7 +507,6 @@ function main(
     const ratio_sources = ratio_targets.splice(targets.length)
 
     if (!sources_total.eq(targets_total)) {
-        // ToDo
         throw new Error('total_souces != total_targets')
     }
 
@@ -518,8 +517,13 @@ function main(
         root_nodes.push(root_node)
         const src_node = new ConveyorNode()
         root_node.link_to(src_node)
-
-        split_nodes = split_nodes.concat(even_split(src_node, ratio_sources[i].toNumber(), max_split))
+        if (ratio_sources[i].eq(1)) {
+            split_nodes = split_nodes.concat(src_node)
+        } else {
+            split_nodes = split_nodes.concat(
+                even_split(src_node, ratio_sources[i].toNumber(), max_split)
+            )
+        }
     } 
     smart_merge(split_nodes, ratio_targets, max_merge)
     clean_up_graph(root_nodes)
@@ -587,7 +591,7 @@ function find_machine_count(
     start_at: number = 2,
     decimals: number = 6
 ) {
-    for (let count = start_at; clock.div(count).gte(0.5); count++) {
+    for (let count = start_at; clock.div(count).gte(0.1); count++) {
         if (clock.div(count).toDecimalPlaces(decimals).mul(count).eq(clock)){
             return count
         }

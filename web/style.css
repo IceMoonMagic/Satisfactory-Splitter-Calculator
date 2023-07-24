@@ -1,0 +1,43 @@
+
+:root {
+    --bg-color: var(--ctp-latte-base, #eff1f5);
+    --bg-secondary-color: var(--ctp-latte-crust, #e6e9ef);
+    --color-primary: var(--ctp-latte-yellow, #df8e1d);
+    --color-lightGrey: var(--ctp-latte-surface0, #ccd0da);
+    --color-grey: var(--ctp-latte-overlay0, #9ca0b0);
+    --color-darkGrey: var(--ctp-latte-subtext0, #020202);
+    --color-error: var(--ctp-latte-red, #d20f39);
+    --color-success: var(--ctp-latte-green, #40a02b);
+    --font-color: var(--ctp-latte-text, #4c4f69);
+}
+
+body.dark {
+    --bg-color: var(--ctp-frappe-base, #303446);
+    --bg-secondary-color: var(--ctp-frappe-crust, #292c3c);
+    /* --color-primary: var(--ctp-frappe-yellow, #e5c890); */
+    --color-lightGrey: var(--ctp-frappe-surface0, #414559);
+    --color-grey: var(--ctp-frappe-overlay0, #737994);
+    --color-darkGrey: var(--ctp-frappe-subtext0, #a5adce);
+    /* --color-error: var(--ctp-frappe-, #e78284); */
+    /* --color-success: var(--ctp-frappe-, #a6d189); */
+    --font-color: var(--ctp-frappe-text, #c6d0f5);
+}
+
+input,
+select,
+textarea {
+    color: var(--font-color);
+    background-color: var(--bg-secondary-color);
+}
+
+code {
+    color: var(--color-font)
+}
+
+code.error {
+    color: var(--color-error)
+}
+
+.tab:hover {
+    cursor: pointer
+}

@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
+  <link href="https://unpkg.com/chota@latest" rel="stylesheet">
+  <link href="https://unpkg.com/@catppuccin/palette/css/catppuccin.css" rel="stylesheet">
+  <link href="style.css" rel="stylesheet">
+  <script src="decimal.js"></script>
+  <script src="ConveyorNode.js"></script>
+  <script src="index.js"></script>
+  <title>Satisfactory Splitter Calculator</title>
+</head>
+
+<body class="container">
+<nav class="tabs is-full">
+  <a class="tab active" onclick="setTab(this, 'ratio')">Split Ratio</a>
+  <a class="tab" onclick="setTab(this, 'even')">Split Evenly</a>
+  <a class="tab" onclick="setTab(this, 'machines')">Machine Count</a>
+  <a class="tab" onclick="setTab(this, 'settings')">Settings</a>
+</nav>
+<br>
+
+<div>
+  <div id="ratio">
+    <div class="row">
+      <div class="col card" id="ratio_sources">
+        <label>Sources</label>
+        <div class="row">
+          <input class="col" min="0" type="number" value="3">
+          <a class="button error col-1" onclick="this.parentElement.remove()">🗑</a>
+        </div>
+        <a class="button is-center success" onclick="addInput(this)" id="ratio_sources_button">+</a>
+      </div>
+      <div class="col card" id="ratio_targets">
+        <label>Targets</label>
+        <div class="row">
+          <input class="col" min="0" type="number" value="1">
+          <a class="button error col-1" onclick="this.parentElement.remove()">🗑</a>
+        </div>
+        <div class="row">
+          <input class="col" min="0" type="number" value="2">
+          <a class="button error col-1" onclick="this.parentElement.remove()">🗑</a>
+        </div>
+        <a class="button is-center success" onclick="addInput(this)" id="ratio_targets_button">+</a>
+      </div>
+    </div>
+    <details class="card">
+      <summary>Advanced</summary>
+      <form>
+        <div class="row">
+          <div class="col">
+            <label for="splits">Maximum Splits per Node</label>
+            <input id="ratio_splits" min="3" name="splits" type="number" value="3">
+          </div>
+          <div class="col">
+            <label for="merges">Maximum Merges per Node</label>
+            <input id="ratio_merges" min="2" name="splits" type="number" value="3">
+          </div>
+        </div>
+        <div class="row">
+          <label for="perms">Try All Permutations</label>
+          <input id="ratio_perms" name="perms" type="checkbox">
+          <label style="color: var(--color-error)">(This may take a while!)</label>
+        </div>
+      </form>
+    </details>
+    <a class="button is-center primary" onclick="calculateRatio()">Calculate</a>
+    <textarea readonly id="ratio_out" rows="10"></textarea>
+    <a class="button is-center primary outline" id="ratio_link" target="_blank">View Online</a>
+  </div>
+
+  <div hidden id="even">
+    <div class="row">
+      <div class="col card" id="even_sources">
+        <label for="inputs">Sources</label>
+        <div class="row">
+          <input class="col" min="0" type="number" value="3">
+          <a class="button error col-1" onclick="this.parentElement.remove()">🗑</a>
+        </div>
+        <a class="button is-center success" onclick="addInput(this)" id="even_sources_button">+</a>
+      </div>
+    </div>
+    <details class="card">
+      <summary>Advanced</summary>
+      <form>
+        <div class="row">
+          <div class="col">
+            <label for="splits">Maximum Splits per Node</label>
+            <input id="even_splits" min="3" name="splits" type="number" value="3">
+          </div>
+        </div>
+        <label for="perms">Try All Permutations</label>
+        <input id="even_perms" name="perms" type="checkbox">
+        <label style="color: var(--color-error)">(This may take a while!)</label>
+      </form>
+    </details>
+    <a class="button is-center primary" onclick="calculateEven()">Calculate</a>
+    <textarea readonly id="even_out" rows="10"></textarea>
+    <a class="button is-center primary outline" id="even_link" target="_blank">View Online</a>
+  </div>
+
+  <div class="card" hidden id="machines">
+    <div class="row">
+      <div class="col">
+        <label>Clock Speed (as decimal)</label>
+        <input min=".000001" id="machines dec" oninput="syncMachines(this)" step=".000001" type="number" value="1">
+      </div>
+      <div class="col">
+        <label>Clock Speed (as percentage)</label>
+        <input min=".0001" id="machines per" oninput="syncMachines(this)" step=".0001" type="number" value="100">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label>Minimum Machines</label>
+        <input min="1" type="number" value="2" id="machines_min">
+      </div>
+    </div>
+    <a class="button is-center primary" onclick="calculateCount()">Calculate</a>
+    <p class="is-center">
+      <code id="machines count">N</code> machines at 
+      <code id="machines out dec">x</code> (<code id="machines out per">x%</code>)
+      clock speed.</p>
+  </div>
+
+  <div id="settings" hidden>
+    <p class="card">Nothing but the <code>Light / Dark Mode</code> button currently does anything.</p>
+    <div class="row">
+      <button class="button col is-center" onclick="exportSettings()">
+        Export Settings
+        <img alt="" class="text-icon" src="https://icongr.am/octicons/download.svg?size=20&amp;color=4c4f69">
+      </button>
+      <button class="button col is-center" onclick="importSettings()">
+        Import Settings
+        <img alt="" class="text-icon" src="https://icongr.am/octicons/upload.svg?size=20&amp;color=4c4f69">
+      </button>
+      <a class="button col-2 color-mode" onclick="switchMode()">Dark Mode</a>
+    </div>
+    <div class="card">
+      <label>Graph Settings</label>
+      <details class="card" open>
+        <summary>Belts / Edges</summary>
+        <label for="splines">Line Style</label>
+        <select id="splines" name="splines">
+          <option value="spline">Spline</option>
+          <option value="polyline">Polyline</option>
+          <option value="curved">Curved</option>
+          <option value="line">Line</option>
+          <option value="ortho">Ortho</option>
+          <option value="none">None</option>
+        </select>
+        <label>Label</label>
+        <input type="text">
+        <label>Head Label</label>
+        <input type="text">
+        <label>Tail Label</label>
+        <input type="text">
+      </details>
+      <details class="card" disabled>
+        <summary>Nodes</summary>
+        <details class="card" open>
+          <summary>All Nodes</summary>
+          <label for="splines">Node Shape</label>
+          <select id="splines" name="splines">
+            <option value="polygon">polygon</option>
+            <option value="ellipse" selected>ellipse</option>
+            <option value="oval">oval</option>
+            <option value="circle">circle</option>
+            <option value="point">point</option>
+            <option value="egg">egg</option>
+            <option value="triangle">triangle</option>
+            <option value="plaintext">plaintext</option>
+            <option value="plain">plain</option>
+            <option value="diamond">diamond</option>
+            <option value="trapezium">trapezium</option>
+            <option value="parallelogram">parallelogram</option>
+            <option value="house">house</option>
+            <option value="pentagon">pentagon</option>
+            <option value="hexagon">hexagon</option>
+            <option value="septagon">septagon</option>
+            <option value="octagon">octagon</option>
+            <option value="doublecircle">doublecircle</option>
+            <option value="doubleoctagon">doubleoctagon</option>
+            <option value="tripleoctagon">tripleoctagon</option>
+            <option value="invtriangle">invtriangle</option>
+            <option value="invtrapezium">invtrapezium</option>
+            <option value="invhouse">invhouse</option>
+            <option value="Mdiamond">Mdiamond</option>
+            <option value="Msquare">Msquare</option>
+            <option value="Mcircle">Mcircle</option>
+            <option value="rectangle">rectangle</option>
+            <option value="square">square</option>
+            <option value="star">star</option>
+            <option value="underline">underline</option>
+            <option value="cylinder">cylinder</option>         
+          </select>
+          <label>Label</label>
+          <input type="text">
+        </details>
+        <details class="card">
+          <summary>Sources Overrides</summary>
+          <label for="splines">Node Shape</label>
+          <select id="splines" name="splines">
+            <option value="inherit">inherit</option>
+            <option value="polygon">polygon</option>
+            <option value="ellipse">ellipse</option>
+            <option value="oval">oval</option>
+            <option value="circle">circle</option>
+            <option value="point">point</option>
+            <option value="egg">egg</option>
+            <option value="triangle">triangle</option>
+            <option value="plaintext">plaintext</option>
+            <option value="plain">plain</option>
+            <option value="diamond">diamond</option>
+            <option value="trapezium">trapezium</option>
+            <option value="parallelogram">parallelogram</option>
+            <option value="house">house</option>
+            <option value="pentagon">pentagon</option>
+            <option value="hexagon">hexagon</option>
+            <option value="septagon">septagon</option>
+            <option value="octagon">octagon</option>
+            <option value="doublecircle">doublecircle</option>
+            <option value="doubleoctagon">doubleoctagon</option>
+            <option value="tripleoctagon">tripleoctagon</option>
+            <option value="invtriangle">invtriangle</option>
+            <option value="invtrapezium">invtrapezium</option>
+            <option value="invhouse">invhouse</option>
+            <option value="Mdiamond">Mdiamond</option>
+            <option value="Msquare">Msquare</option>
+            <option value="Mcircle">Mcircle</option>
+            <option value="rectangle">rectangle</option>
+            <option value="square">square</option>
+            <option value="star">star</option>
+            <option value="underline">underline</option>
+            <option value="cylinder">cylinder</option>         
+          </select>
+          <label>Label</label>
+          <input type="text">
+        </details>
+        <details class="card">
+          <summary>Splitters Overrides</summary>
+          <label for="splines">Node Shape</label>
+          <select id="splines" name="splines">
+            <option value="inherit">inherit</option>
+            <option value="polygon">polygon</option>
+            <option value="ellipse">ellipse</option>
+            <option value="oval">oval</option>
+            <option value="circle">circle</option>
+            <option value="point">point</option>
+            <option value="egg">egg</option>
+            <option value="triangle">triangle</option>
+            <option value="plaintext">plaintext</option>
+            <option value="plain">plain</option>
+            <option value="diamond">diamond</option>
+            <option value="trapezium">trapezium</option>
+            <option value="parallelogram">parallelogram</option>
+            <option value="house">house</option>
+            <option value="pentagon">pentagon</option>
+            <option value="hexagon">hexagon</option>
+            <option value="septagon">septagon</option>
+            <option value="octagon">octagon</option>
+            <option value="doublecircle">doublecircle</option>
+            <option value="doubleoctagon">doubleoctagon</option>
+            <option value="tripleoctagon">tripleoctagon</option>
+            <option value="invtriangle">invtriangle</option>
+            <option value="invtrapezium">invtrapezium</option>
+            <option value="invhouse">invhouse</option>
+            <option value="Mdiamond">Mdiamond</option>
+            <option value="Msquare">Msquare</option>
+            <option value="Mcircle">Mcircle</option>
+            <option value="rectangle">rectangle</option>
+            <option value="square">square</option>
+            <option value="star">star</option>
+            <option value="underline">underline</option>
+            <option value="cylinder">cylinder</option>         
+          </select>
+          <label>Label</label>
+          <input type="text">
+        </details>
+        <details class="card">
+          <summary>Mergers Overrides</summary>
+          <label for="splines">Node Shape</label>
+          <select id="splines" name="splines">
+            <option value="inherit">inherit</option>
+            <option value="polygon">polygon</option>
+            <option value="ellipse">ellipse</option>
+            <option value="oval">oval</option>
+            <option value="circle">circle</option>
+            <option value="point">point</option>
+            <option value="egg">egg</option>
+            <option value="triangle">triangle</option>
+            <option value="plaintext">plaintext</option>
+            <option value="plain">plain</option>
+            <option value="diamond">diamond</option>
+            <option value="trapezium">trapezium</option>
+            <option value="parallelogram">parallelogram</option>
+            <option value="house">house</option>
+            <option value="pentagon">pentagon</option>
+            <option value="hexagon">hexagon</option>
+            <option value="septagon">septagon</option>
+            <option value="octagon">octagon</option>
+            <option value="doublecircle">doublecircle</option>
+            <option value="doubleoctagon">doubleoctagon</option>
+            <option value="tripleoctagon">tripleoctagon</option>
+            <option value="invtriangle">invtriangle</option>
+            <option value="invtrapezium">invtrapezium</option>
+            <option value="invhouse">invhouse</option>
+            <option value="Mdiamond">Mdiamond</option>
+            <option value="Msquare">Msquare</option>
+            <option value="Mcircle">Mcircle</option>
+            <option value="rectangle">rectangle</option>
+            <option value="square">square</option>
+            <option value="star">star</option>
+            <option value="underline">underline</option>
+            <option value="cylinder">cylinder</option>         
+          </select>
+          <label>Label</label>
+          <input type="text">
+        </details>
+        <details class="card">
+          <summary>Targets Overrides</summary>
+          <label for="splines">Node Shape</label>
+          <select id="splines" name="splines">
+            <option value="inherit">inherit</option>
+            <option value="polygon">polygon</option>
+            <option value="ellipse">ellipse</option>
+            <option value="oval">oval</option>
+            <option value="circle">circle</option>
+            <option value="point">point</option>
+            <option value="egg">egg</option>
+            <option value="triangle">triangle</option>
+            <option value="plaintext">plaintext</option>
+            <option value="plain">plain</option>
+            <option value="diamond">diamond</option>
+            <option value="trapezium">trapezium</option>
+            <option value="parallelogram">parallelogram</option>
+            <option value="house">house</option>
+            <option value="pentagon">pentagon</option>
+            <option value="hexagon">hexagon</option>
+            <option value="septagon">septagon</option>
+            <option value="octagon">octagon</option>
+            <option value="doublecircle">doublecircle</option>
+            <option value="doubleoctagon">doubleoctagon</option>
+            <option value="tripleoctagon">tripleoctagon</option>
+            <option value="invtriangle">invtriangle</option>
+            <option value="invtrapezium">invtrapezium</option>
+            <option value="invhouse">invhouse</option>
+            <option value="Mdiamond">Mdiamond</option>
+            <option value="Msquare">Msquare</option>
+            <option value="Mcircle">Mcircle</option>
+            <option value="rectangle">rectangle</option>
+            <option value="square">square</option>
+            <option value="star">star</option>
+            <option value="underline">underline</option>
+            <option value="cylinder">cylinder</option>         
+          </select>
+          <label>Label</label>
+          <input type="text">
+        </details>
+      </details>
+    </div>
+  </div>
+</div>
+</body>
+</html>
