@@ -49,11 +49,11 @@
       <summary>Advanced</summary>
       <form>
         <div class="row">
-          <div class="col">
+          <div class="col row">
             <label for="splits">Maximum Splits per Node</label>
             <input id="ratio_splits" min="3" name="splits" type="number" value="3">
           </div>
-          <div class="col">
+          <div class="col row">
             <label for="merges">Maximum Merges per Node</label>
             <input id="ratio_merges" min="2" name="splits" type="number" value="3">
           </div>
@@ -85,14 +85,11 @@
       <summary>Advanced</summary>
       <form>
         <div class="row">
-          <div class="col">
+          <div class="col row">
             <label for="splits">Maximum Splits per Node</label>
             <input id="even_splits" min="3" name="splits" type="number" value="3">
           </div>
         </div>
-        <label for="perms">Try All Permutations</label>
-        <input id="even_perms" name="perms" type="checkbox">
-        <label style="color: var(--color-error)">(This may take a while!)</label>
       </form>
     </details>
     <a class="button is-center primary" onclick="calculateEven()">Calculate</a>

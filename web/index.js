@@ -115,20 +115,15 @@ function calculateRatio() {
 }
 
 function calculateEven() {
-    const sources = readInputs('even_sources')[0]
+    const sources = readInputs('even_sources')
     const max_split = document.getElementById('even_splits').value
 
     if (sources.length == 0 || Decimal.sum(...sources).eq(0)) {
         return
     }
 
-    let result
-    if (document.getElementById('even_perms').checked) {
-        result = main_split(sources, max_split).catch(foo)
-    } else {
-        result = main_split(sources, max_split)
-    }
-    const digraph = to_dot([result])
+    const result = main_split(sources, max_split)
+    const digraph = to_dot(result)
     document.getElementById('even_out').innerHTML = digraph
     const link = GRAPHVIZ_URL + encodeURI(digraph)
     document.getElementById('even_link').setAttribute('href', link)

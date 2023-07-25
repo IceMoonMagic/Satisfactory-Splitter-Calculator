@@ -417,15 +417,19 @@ function main(into, from = undefined, max_split = 3, max_merge = 3) {
     return root_nodes;
 }
 function main_split(into, max_split = 3) {
-    const target = new Decimal(into);
-    if (!target.mod(1).eq(0)) {
-        throw new Error(`${target} is not a natural number / int.`);
+    const root_nodes = new Array();
+    for (let i of into) {
+        const target = new Decimal(i);
+        if (!target.mod(1).eq(0)) {
+            throw new Error(`${target} is not a natural number / int.`);
+        }
+        const root_node = new ConveyorNode(target);
+        const src_node = new ConveyorNode();
+        root_node.link_to(src_node);
+        even_split(src_node, target.toNumber(), max_split);
+        root_nodes.push(root_node);
     }
-    const root_node = new ConveyorNode(target);
-    const src_node = new ConveyorNode();
-    root_node.link_to(src_node);
-    even_split(src_node, target.toNumber(), max_split);
-    return root_node;
+    return root_nodes;
 }
 function main_find_best(into, from = undefined, max_split = 3, max_merge = 3) {
     function* permutations(elements) {

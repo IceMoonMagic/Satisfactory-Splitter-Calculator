@@ -531,18 +531,22 @@ function main(
 }
 
 function main_split(
-    into: number | Decimal,
+    into: Array<number | Decimal>,
     max_split: number = 3
-): ConveyorNode {
-    const target = new Decimal(into)
-    if (!target.mod(1).eq(0)) {
-        throw new Error(`${target} is not a natural number / int.`)
+): ConveyorNode[] {
+    const root_nodes = new Array()
+    for (let i of into) {
+        const target = new Decimal(i)
+        if (!target.mod(1).eq(0)) {
+            throw new Error(`${target} is not a natural number / int.`)
+        }
+        const root_node = new ConveyorNode(target)
+        const src_node = new ConveyorNode()
+        root_node.link_to(src_node)
+        even_split(src_node, target.toNumber(), max_split)
+        root_nodes.push(root_node)
     }
-    const root_node = new ConveyorNode(target)
-    const src_node = new ConveyorNode()
-    root_node.link_to(src_node)
-    even_split(src_node, target.toNumber(), max_split)
-    return root_node
+    return root_nodes
 }
 
 function main_find_best(
@@ -585,6 +589,7 @@ function main_find_best(
     }
     return best_start
 }
+
 
 function find_machine_count(
     clock: Decimal,
