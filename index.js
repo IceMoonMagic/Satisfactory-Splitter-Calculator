@@ -134,12 +134,12 @@ function calculateRatio() {
 
     } else if (sum_sources.lt(sum_targets)) {
         const diff = sum_targets.sub(sum_sources)
-        const new_source = addInput(document.getElementById('ratio_sources_button'))
+        const new_source = addInput('ratio_sources')
         new_source.value = diff
         return calculateRatio()
     } else if (sum_targets.lt(sum_sources)) {
         const diff = sum_sources.sub(sum_targets)
-        const new_target = addInput(document.getElementById('ratio_targets_button'))
+        const new_target = addInput('ratio_targets')
         new_target.value = diff
         return calculateRatio()
     }
