@@ -44,7 +44,7 @@ function setTab(nav, section_name) {
     }
 }
 
-function addInput(section_id, value = 0) {
+function addInput(section_id, value = 1) {
     const section =document.getElementById(section_id)
     const row = document.createElement('div')
     const input = document.createElement('input')
