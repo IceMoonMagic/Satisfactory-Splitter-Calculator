@@ -24,46 +24,37 @@
 <div>
   <div id="ratio">
     <div class="row">
-      <div class="col card" id="ratio_sources">
+      <div class="col card">
         <label>Sources</label>
-        <div class="row">
-          <input class="col" min="0" type="number" value="3">
-          <a class="button error col-1" onclick="this.parentElement.remove()">🗑</a>
-        </div>
-        <a class="button is-center success" onclick="addInput(this)" id="ratio_sources_button">+</a>
+        <div id="ratio_sources"></div>
+        <a class="button is-center success" onclick="addInput('ratio_sources')">+</a>
+        <script>addInput('ratio_sources', 3)</script>
       </div>
-      <div class="col card" id="ratio_targets">
+      <div class="col card">
         <label>Targets</label>
-        <div class="row">
-          <input class="col" min="0" type="number" value="1">
-          <a class="button error col-1" onclick="this.parentElement.remove()">🗑</a>
-        </div>
-        <div class="row">
-          <input class="col" min="0" type="number" value="2">
-          <a class="button error col-1" onclick="this.parentElement.remove()">🗑</a>
-        </div>
-        <a class="button is-center success" onclick="addInput(this)" id="ratio_targets_button">+</a>
+        <div id="ratio_targets"></div>
+        <a class="button is-center success" onclick="addInput('ratio_targets')">+</a>
+        <script>addInput('ratio_targets', 2)</script>
+        <script>addInput('ratio_targets', 1)</script>
       </div>
     </div>
     <details class="card">
       <summary>Advanced</summary>
-      <form>
         <div class="row">
           <div class="col row">
-            <label for="splits">Maximum Splits per Node</label>
-            <input id="ratio_splits" min="3" name="splits" type="number" value="3">
+            <label for="ratio_splits">Maximum Splits per Node</label>
+            <input id="ratio_splits" min="2" type="number" value="3">
           </div>
           <div class="col row">
-            <label for="merges">Maximum Merges per Node</label>
-            <input id="ratio_merges" min="2" name="splits" type="number" value="3">
+            <label for="ratio_merges">Maximum Merges per Node</label>
+            <input id="ratio_merges" min="2" type="number" value="3">
           </div>
         </div>
         <div class="row">
-          <label for="perms">Try All Permutations</label>
-          <input id="ratio_perms" name="perms" type="checkbox">
-          <label style="color: var(--color-error)">(This may take a while!)</label>
+          <label for="ratio_perms">Try All Permutations</label>
+          <input id="ratio_perms" type="checkbox">
+          <label for="ratio_perms" style="color: var(--color-error)">(This may take a while!)</label>
         </div>
-      </form>
     </details>
     <a class="button is-center primary" onclick="calculateRatio()">Calculate</a>
     <textarea readonly id="ratio_out" rows="10"></textarea>
@@ -72,13 +63,11 @@
 
   <div hidden id="even">
     <div class="row">
-      <div class="col card" id="even_sources">
+      <div class="col card">
         <label for="inputs">Sources</label>
-        <div class="row">
-          <input class="col" min="0" type="number" value="3">
-          <a class="button error col-1" onclick="this.parentElement.remove()">🗑</a>
-        </div>
-        <a class="button is-center success" onclick="addInput(this)" id="even_sources_button">+</a>
+        <div id="even_sources"></div>
+        <a class="button is-center success" onclick="addInput('even_sources')">+</a>
+        <script>addInput('even_sources', 3)</script>
       </div>
     </div>
     <details class="card">
@@ -122,7 +111,6 @@
   </div>
 
   <div id="settings" hidden>
-    <p class="card">Nothing but the <code>Light / Dark Mode</code> button currently does anything.</p>
     <div class="row">
       <button class="button col is-center" onclick="exportSettings()">
         Export Settings
@@ -136,6 +124,7 @@
     </div>
     <div class="card">
       <label>Graph Settings</label>
+      <p class="card">Graph Settings don't work yet.</p>
       <details class="card" open>
         <summary>Belts / Edges</summary>
         <label for="splines">Line Style</label>

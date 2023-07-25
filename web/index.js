@@ -12,7 +12,7 @@ window.addEventListener("DOMContentLoaded", () => {
 function switchMode(toDark = undefined) {
     /* https://jenil.github.io/chota/ */
     const bodyClass = document.body.classList;
-    let el = document.getElementsByClassName('color-mode')[0]
+    const el = document.getElementsByClassName('color-mode')[0]
     if (toDark === undefined ? !bodyClass.contains('dark') : toDark) {
         bodyClass.add('dark')
         el.innerHTML = "Light Mode"
@@ -38,19 +38,20 @@ function setTab(nav, section_name) {
         }
     }
     nav.classList.add('active')
-    target_section = document.getElementById(section_name)
+    const target_section = document.getElementById(section_name)
     for (let section of target_section.parentElement.children) {
         section.hidden = section !== target_section
     }
 }
 
-function addInput(button) {
+function addInput(section_id, value = 0) {
+    const section =document.getElementById(section_id)
     const row = document.createElement('div')
     const input = document.createElement('input')
-    const remove = document.createElement('a')
+    const remove = document.createElement('button')
     const remove_icon = document.createTextNode('🗑')
 
-    button.before(row)
+    section.append(row)
     row.append(input)
     row.append(remove)
     remove.append(remove_icon)
@@ -61,6 +62,7 @@ function addInput(button) {
     input.setAttribute('type', 'number')
     input.setAttribute('min', '0')
     input.setAttribute('value', '0')
+    input.value = value
 
     remove.setAttribute('class', 'button error col-1')
     remove.setAttribute('onclick', 'this.parentElement.remove()')
@@ -75,6 +77,47 @@ function readInputs(name) {
         values.push(input.value)
     }
     return values
+}
+
+class RatioSettings {
+    constructor(
+        sources = [3], 
+        targets = [2, 1], 
+        max_splits = 3, 
+        max_merges = 3, 
+        try_perms = false
+    ) {
+        this.sources = sources
+        this.targets = targets
+        this.max_splits = max_splits
+        this.max_merges = max_merges
+        this.try_perms = try_perms
+    }
+}
+
+function importRatio(values = undefined) {
+    values = values || new RatioSettings()
+    
+    document.getElementById('ratio_sources').innerHTML = ''
+    values.sources.forEach(src => addInput('ratio_sources', src))
+
+    document.getElementById('ratio_targets').innerHTML = ''
+    values.targets.forEach(src => addInput('ratio_targets', src))
+
+    document.getElementById('ratio_splits').value = values.max_splits
+    document.getElementById('ratio_merges').value = values.max_merges
+    
+    document.getElementById('ratio_perms').value = values.try_perms
+}
+
+function exportRatio() {
+    return new RatioSettings(
+        readInputs('ratio_sources'),
+        readInputs('ratio_targets'),
+        document.getElementById('ratio_splits').value,
+        document.getElementById('ratio_merges').value,
+        document.getElementById('ratio_perms').value,
+    )
 }
 
 function calculateRatio() {
@@ -114,6 +157,32 @@ function calculateRatio() {
     document.getElementById('ratio_link').setAttribute('href', link)
 }
 
+class EvenSettings {
+    constructor(
+        sources = [3], 
+        max_splits = 3, 
+    ) {
+        this.sources = sources
+        this.max_splits = max_splits
+    }
+}
+
+function importEven(values = undefined) {
+    values = values || new EvenSettings()
+    
+    document.getElementById('even_sources').innerHTML = ''
+    values.sources.forEach(src => addInput('even_sources', src))
+
+    document.getElementById('even_splits').value = values.max_splits
+}
+
+function exportEven() {
+    return new EvenSettings(
+        readInputs('even_sources'),
+        document.getElementById('even_splits').value
+    )
+}
+
 function calculateEven() {
     const sources = readInputs('even_sources')
     const max_split = document.getElementById('even_splits').value
@@ -137,6 +206,30 @@ function syncMachines(element) {
     sync_with.value = (element.value * multiplier).toFixed(element.id == 'machines dec' ? 4 : 6)
 }
 
+class MachineSettings {
+    constructor(
+        clock = 1, 
+        min_machines = 2, 
+    ) {
+        this.clock = clock
+        this.min_machines = min_machines
+    }
+}
+
+function importMachines(values = undefined) {
+    values = values || new MachineSettings()
+    document.getElementById('machines dec').value = values.clock
+    syncMachines(document.getElementById('machines dec'))
+    document.getElementById('machines_min').value = values.min_machines
+}
+
+function exportMachines() {
+    return new MachineSettings(
+        document.getElementById('machines dec').value,
+        document.getElementById('machines_min').value
+    )
+}
+
 function calculateCount() {
     const input = document.getElementById('machines dec')
     const min = document.getElementById('machines_min')
@@ -157,12 +250,57 @@ function calculateCount() {
     }
 }
 
-function exportSettings() {    
-    const factory = JSON.stringify('PLACEHOLDER', null, 4);
+
+class MetaSettings {
+    constructor(
+        dark_mode = document.body.classList.contains('dark')
+    ) {
+        this.dark_mode = dark_mode
+    }
+}
+
+function importMetaSettings(values = undefined) {
+    values = values || new MetaSettings()
+    switchMode(values.dark_mode)
+}
+
+function exportMetaSettings() {
+    return new MetaSettings(
+        document.body.classList.contains('dark')
+    )
+}
+
+class AllSettings {
+    constructor (ratio, even, machines, meta) {
+        this.ratio = ratio
+        this.even = even
+        this.machines = machines
+        this.meta = meta
+    }
+}
+
+function importAllSettings(values) {
+    importRatio(values.ratio)
+    importEven(values.even)
+    importMachines(values.machines)
+    importMetaSettings(values.meta)
+}
+
+function exportAllSettings() {
+    return new AllSettings(
+        exportRatio(),
+        exportEven(),
+        exportMachines(),
+        exportMetaSettings()
+    )
+}
+
+function exportSettings() {
+    const factory = JSON.stringify(exportAllSettings(), null, 4);
     const blob = new Blob([factory], {type: 'application/json;charset=utf-8;'});
     const downloadLink = document.createElement('a');
     downloadLink.setAttribute('href', window.URL.createObjectURL(blob));
-    downloadLink.setAttribute('download', 'PLACEHOLDER.json');
+    downloadLink.setAttribute('download', 'SplitterCalculator.json');
     downloadLink.click();
 }
 
@@ -177,7 +315,7 @@ function importSettings() {
         }
         const fr = new FileReader();
         fr.onload = function(event) {
-            const PLACEHOLDER = JSON.parse(event.target.result);
+            importAllSettings(JSON.parse(event.target.result));
         };
         fr.readAsText(file);
     };
