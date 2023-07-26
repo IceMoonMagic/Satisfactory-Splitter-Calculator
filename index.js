@@ -148,7 +148,6 @@ function calculateRatio() {
     if (document.getElementById('ratio_perms').checked) {
         result = main_find_best(targets, sources, max_split, max_merge)
     } else {
-        console.log(targets, sources, max_split, max_merge)
         result = main(targets, sources, max_split, max_merge)
     }
     const digraph = GraphSettings.from_page().to_dot(result)
@@ -447,7 +446,6 @@ class GraphSettings {
                     break
             }
             output += '"];\n'
-            console.log(node)
         }
 
         for (let edge of edgesAndNodes.edges) {
