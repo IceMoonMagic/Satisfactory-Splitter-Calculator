@@ -120,25 +120,18 @@ class ConveyorNode {
 }
 ConveyorNode._ids = new WeakMap();
 ConveyorNode._curr_id = 0;
-function to_dot(root_nodes) {
+function findEdgesAndNodes(...root_nodes) {
     const edges = new Array();
     const nodes = new Array();
-    function _to_dot(curr_node) {
+    function _findEdgesAndNodes(curr_node) {
         if (nodes.indexOf(curr_node) === -1) {
             nodes.push(curr_node);
             curr_node.outs.forEach(e => edges.push(e));
-            curr_node.outs.forEach(e => _to_dot(e.dst));
+            curr_node.outs.forEach(e => _findEdgesAndNodes(e.dst));
         }
     }
-    root_nodes.forEach(e => (_to_dot(e)));
-    let output = "digraph G {\n";
-    for (let node of nodes) {
-        output += `\t${node.id} [label="${node.sum_ins}|${node.holding}|${node.sum_outs}"];\n`;
-    }
-    for (let edge of edges) {
-        output += `\t${edge.src.id} -> ${edge.dst.id};\n`;
-    }
-    return output + "}";
+    root_nodes.forEach(e => (_findEdgesAndNodes(e)));
+    return { edges: edges, nodes: nodes };
 }
 function ratio(targets) {
     function gcd(a, b) {
@@ -332,7 +325,7 @@ function clean_up_graph(start_nodes, max_merge = 3) {
                 let relink = curr_node.ins[0].carrying;
                 if (!curr_node.outs[0].carrying.eq(relink)) {
                     console.error(`${curr_node.outs[0].carrying} != ${relink}`, curr_node.holding);
-                    console.error(to_dot(start_nodes), '\n', curr_node.id);
+                    console.error(findEdgesAndNodes(...start_nodes), '\n', curr_node.id);
                     throw new Error('!curr_node.outs[0].carrying.eq(relink)');
                 }
                 curr_node.ins[0].remove_link();
@@ -454,8 +447,8 @@ function main_find_best(into, from = undefined, max_split = 3, max_merge = 3) {
     for (let into_perm of permutations(into)) {
         for (let from_perm of permutations(from)) {
             const root_nodes = main(into_perm, from_perm, max_split, max_merge);
-            const dot = to_dot(root_nodes);
-            const lines = (dot.match(/\n/g) || []).length;
+            const edgesAndNodes = findEdgesAndNodes(...root_nodes);
+            const lines = edgesAndNodes.edges.length + edgesAndNodes.nodes.length;
             if (best_lines === undefined || lines < best_lines) {
                 best_lines = lines;
                 best_start = root_nodes;

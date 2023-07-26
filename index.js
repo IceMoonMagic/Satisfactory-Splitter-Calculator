@@ -151,7 +151,7 @@ function calculateRatio() {
         console.log(targets, sources, max_split, max_merge)
         result = main(targets, sources, max_split, max_merge)
     }
-    const digraph = to_dot(result)
+    const digraph = GraphSettings.from_page().to_dot(result)
     document.getElementById('ratio_out').innerHTML = digraph
     const link = GRAPHVIZ_URL + encodeURI(digraph)
     document.getElementById('ratio_link').setAttribute('href', link)
@@ -192,7 +192,7 @@ function calculateEven() {
     }
 
     const result = main_split(sources, max_split)
-    const digraph = to_dot(result)
+    const digraph = GraphSettings.from_page().to_dot(result)
     document.getElementById('even_out').innerHTML = digraph
     const link = GRAPHVIZ_URL + encodeURI(digraph)
     document.getElementById('even_link').setAttribute('href', link)
@@ -293,6 +293,120 @@ function exportAllSettings() {
         exportMachines(),
         exportMetaSettings()
     )
+}
+
+class GraphSettings {
+    constructor (
+        edge_shape = 'spline',
+        edge_label = '{link.carrying}',
+        head_label = '""',
+        tail_label = '""',
+        node_shape = 'ellipse',
+        node_label = '{node.holding}',
+        source_shape = 'ellipse',
+        source_label = '{node.sum_outs}',
+        split_shape = 'inherit',
+        split_label = '',
+        merge_shape = 'octagon',
+        merge_label = '',
+        target_shape = 'invhouse',
+        target_label = '',
+    ) {
+        this.edge_shape = edge_shape
+        this.edge_label = edge_label ? '`' + edge_label + '`' : ''
+        this.head_label = head_label ? '`' + head_label + '`' : ''
+        this.tail_label = tail_label ? '`' + tail_label + '`' : ''
+        this.node_shape = node_shape
+        this.node_label = node_label ? '`' + node_label + '`' : ''
+        this.source_shape = source_shape
+        this.source_label = source_label ? '`' + source_label + '`' : ''
+        this.split_shape = split_shape
+        this.split_label = split_label ? '`' + split_label + '`' : ''
+        this.merge_shape = merge_shape
+        this.merge_label = merge_label ? '`' + merge_label + '`' : ''
+        this.target_shape = target_shape
+        this.target_label = target_label ? '`' + target_label + '`' : ''
+    }
+
+    static from_page() {
+        return new GraphSettings(
+            document.getElementById('splines').value,
+            document.getElementById('edge label').value,
+            document.getElementById('head label').value,
+            document.getElementById('tail label').value,
+            document.getElementById('node shape').value,
+            document.getElementById('node label').value,
+            document.getElementById('source shape').value,
+            document.getElementById('source label').value,
+            document.getElementById('split shape').value,
+            document.getElementById('split label').value,
+            document.getElementById('merge shape').value,
+            document.getElementById('merge label').value,
+            document.getElementById('target shape').value,
+            document.getElementById('target label').value,
+        )
+    }
+
+    to_dot(root_nodes) {
+        const edgesAndNodes = findEdgesAndNodes(...root_nodes)
+        let output = "digraph G {\n"
+        if (this.edge_shape != 'spline') {
+            output += `\tsplines=${this.edge_shape};\n`
+        }
+        for (let node of edgesAndNodes.nodes) {
+            output += `\t${node.id} [label="`
+            switch (node.node_type) {
+                case NODE_TYPES.Source:
+                    output += this.source_label ? eval(this.source_label) : eval(this.node_label)
+                    output += '" shape="'
+                    output += this.source_shape ? this.source_shape : this.node_shape
+                    break
+                case NODE_TYPES.Splitter:
+                    output += this.split_label ? eval(this.split_label) : eval(this.node_label)
+                    output += '" shape="'
+                    output += this.split_shape ? this.split_shape : this.node_shape
+                    break
+                case NODE_TYPES.Merger:
+                    output += this.merge_label ? eval(this.merge_label) : eval(this.node_label)
+                    output += '" shape="'
+                    output += this.merge_shape ? this.merge_shape : this.node_shape
+                    break
+                case NODE_TYPES.Destination:
+                    output += this.target_label ? eval(this.target_label) : eval(this.node_label)
+                    output += '" shape="'
+                    output += this.target_shape ? this.target_shape : this.node_shape
+                    break
+                default:
+                    output += eval(this.node_label)
+                    output += '" shape="'
+                    output += this.node_shape
+                    break
+            }
+            output += '"];\n'
+            console.log(node)
+        }
+
+        for (let edge of edgesAndNodes.edges) {
+            output += `\t${edge.src.id} -> ${edge.dst.id} [`
+            if (this.edge_label) {
+                output += `label="${eval(this.edge_label)}"`
+            }
+            if (this.edge_label && this.head_label) {
+                output += ' '
+            }
+            if (this.head_label) {
+                output += `headlabel="${eval(this.head_label)}"`
+            }
+            if ((this.edge_label || this.head_label) && this.tail_label) {
+                output += ' '
+            }
+            if (this.tail_label) {
+                output += `taillabel="${eval(this.tail_label)}"`
+            }
+            output += "];\n"
+        }
+        return output + "}"
+    }
 }
 
 function exportSettings() {
