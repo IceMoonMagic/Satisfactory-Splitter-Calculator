@@ -253,15 +253,18 @@ function calculateCount() {
 
 class MetaSettings {
     constructor(
-        dark_mode = document.body.classList.contains('dark')
+        dark_mode = document.body.classList.contains('dark'),
+        graph_settings = new GraphSettings()
     ) {
         this.dark_mode = dark_mode
+        this.graph_settings = graph_settings
     }
 }
 
 function importMetaSettings(values = undefined) {
     values = values || new MetaSettings()
     switchMode(values.dark_mode)
+    values.graph_settings.to_page()
 }
 
 function exportMetaSettings() {
@@ -298,34 +301,34 @@ function exportAllSettings() {
 class GraphSettings {
     constructor (
         edge_shape = 'spline',
-        edge_label = '{link.carrying}',
-        head_label = '""',
-        tail_label = '""',
+        edge_label = '${edge.carrying}',
+        head_label = '',
+        tail_label = '',
         node_shape = 'ellipse',
-        node_label = '{node.holding}',
+        node_label = '${node.sum_outs}',
         source_shape = 'ellipse',
-        source_label = '{node.sum_outs}',
+        source_label = '',
         split_shape = 'inherit',
         split_label = '',
         merge_shape = 'octagon',
         merge_label = '',
         target_shape = 'invhouse',
-        target_label = '',
+        target_label = '${node.holding}',
     ) {
         this.edge_shape = edge_shape
-        this.edge_label = edge_label ? '`' + edge_label + '`' : ''
-        this.head_label = head_label ? '`' + head_label + '`' : ''
-        this.tail_label = tail_label ? '`' + tail_label + '`' : ''
+        this.edge_label = edge_label
+        this.head_label = head_label
+        this.tail_label = tail_label
         this.node_shape = node_shape
-        this.node_label = node_label ? '`' + node_label + '`' : ''
+        this.node_label = node_label
         this.source_shape = source_shape
-        this.source_label = source_label ? '`' + source_label + '`' : ''
+        this.source_label = source_label
         this.split_shape = split_shape
-        this.split_label = split_label ? '`' + split_label + '`' : ''
+        this.split_label = split_label
         this.merge_shape = merge_shape
-        this.merge_label = merge_label ? '`' + merge_label + '`' : ''
+        this.merge_label = merge_label
         this.target_shape = target_shape
-        this.target_label = target_label ? '`' + target_label + '`' : ''
+        this.target_label = target_label 
     }
 
     static from_page() {
@@ -347,6 +350,67 @@ class GraphSettings {
         )
     }
 
+    to_page() {
+        document.getElementById('splines').value = this.edge_shape
+        document.getElementById('edge label').value = this.edge_label
+        document.getElementById('head label').value = this.head_label
+        document.getElementById('tail label').value = this.tail_label
+        document.getElementById('node shape').value = this.node_shape
+        document.getElementById('node label').value = this.node_label
+        document.getElementById('source shape').value = this.source_shape
+        document.getElementById('source label').value = this.source_label
+        document.getElementById('split shape').value = this.split_shape
+        document.getElementById('split label').value = this.split_label
+        document.getElementById('merge shape').value = this.merge_shape
+        document.getElementById('merge label').value = this.merge_label
+        document.getElementById('target shape').value = this.target_shape
+        document.getElementById('target label').value = this.target_label
+    }
+
+
+    static exportSettings() {
+        const factory = JSON.stringify(GraphSettings.from_page(), null, 4);
+        const blob = new Blob([factory], {type: 'application/json;charset=utf-8;'});
+        const downloadLink = document.createElement('a');
+        downloadLink.setAttribute('href', window.URL.createObjectURL(blob));
+        downloadLink.setAttribute('download', 'GraphSettings.json');
+        downloadLink.click();
+    }
+
+    static importSettings() {
+        const upload_input = document.createElement('input');
+        upload_input.setAttribute('type', 'file');
+        upload_input.setAttribute('allow', 'application/json');
+        upload_input.oninput = function() {
+            const file = upload_input.files[0];
+            if (file === null) {
+                return;
+            }
+            const fr = new FileReader();
+            fr.onload = function(event) {
+                const parsed = JSON.parse(event.target.result)
+                new GraphSettings(
+                    parsed.edge_shape,
+                    parsed.edge_label,
+                    parsed.head_label,
+                    parsed.tail_label,
+                    parsed.node_shape,
+                    parsed.node_label,
+                    parsed.source_shape,
+                    parsed.source_label,
+                    parsed.split_shape,
+                    parsed.split_label,
+                    parsed.merge_shape,
+                    parsed.merge_label,
+                    parsed.target_shape,
+                    parsed.target_label
+                ).to_page()
+            };
+            fr.readAsText(file);
+        };
+        upload_input.click();
+    }
+
     to_dot(root_nodes) {
         const edgesAndNodes = findEdgesAndNodes(...root_nodes)
         let output = "digraph G {\n"
@@ -357,22 +421,22 @@ class GraphSettings {
             output += `\t${node.id} [label="`
             switch (node.node_type) {
                 case NODE_TYPES.Source:
-                    output += this.source_label ? eval(this.source_label) : eval(this.node_label)
+                    output += this.source_label ? eval('`' + this.source_label + '`') : eval('`' + this.node_label + '`')
                     output += '" shape="'
                     output += this.source_shape ? this.source_shape : this.node_shape
                     break
                 case NODE_TYPES.Splitter:
-                    output += this.split_label ? eval(this.split_label) : eval(this.node_label)
+                    output += this.split_label ? eval('`' + this.split_label + '`') : eval('`' + this.node_label + '`')
                     output += '" shape="'
                     output += this.split_shape ? this.split_shape : this.node_shape
                     break
                 case NODE_TYPES.Merger:
-                    output += this.merge_label ? eval(this.merge_label) : eval(this.node_label)
+                    output += this.merge_label ? eval('`' + this.merge_label + '`') : eval('`' + this.node_label + '`')
                     output += '" shape="'
                     output += this.merge_shape ? this.merge_shape : this.node_shape
                     break
                 case NODE_TYPES.Destination:
-                    output += this.target_label ? eval(this.target_label) : eval(this.node_label)
+                    output += this.target_label ? eval('`' + this.target_label + '`') : eval('`' + this.node_label + '`')
                     output += '" shape="'
                     output += this.target_shape ? this.target_shape : this.node_shape
                     break
@@ -389,19 +453,19 @@ class GraphSettings {
         for (let edge of edgesAndNodes.edges) {
             output += `\t${edge.src.id} -> ${edge.dst.id} [`
             if (this.edge_label) {
-                output += `label="${eval(this.edge_label)}"`
+                output += `label="${eval('`' + this.edge_label + '`')}"`
             }
             if (this.edge_label && this.head_label) {
                 output += ' '
             }
             if (this.head_label) {
-                output += `headlabel="${eval(this.head_label)}"`
+                output += `headlabel="${eval('`' + this.head_label + '`')}"`
             }
             if ((this.edge_label || this.head_label) && this.tail_label) {
                 output += ' '
             }
             if (this.tail_label) {
-                output += `taillabel="${eval(this.tail_label)}"`
+                output += `taillabel="${eval('`' + this.tail_label + '`')}"`
             }
             output += "];\n"
         }

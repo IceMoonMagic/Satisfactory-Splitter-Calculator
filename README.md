@@ -64,7 +64,6 @@ The `ConveyorNode`s and `ConveyorLink`s that are used internally represent nodes
 </details>
 
 ## Planned Additions
-- Finish implementing `Graph Settings`
 - More comprehensive input validation
     - (Maybe) Add tool tips
 - (Maybe) Local digraph visualization

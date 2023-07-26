@@ -124,7 +124,16 @@
     </div>
     <div class="card">
       <label>Graph Settings</label>
-      <p class="card">Graph Settings don't work yet.</p>
+      <div class="row">
+        <button class="button col is-center" onclick="GraphSettings.exportSettings()">
+          Export Graph Settings
+          <img alt="" class="text-icon" src="https://icongr.am/octicons/download.svg?size=16&amp;color=4c4f69">
+        </button>
+        <button class="button col is-center" onclick="GraphSettings.importSettings()">
+          Import Graph Settings
+          <img alt="" class="text-icon" src="https://icongr.am/octicons/upload.svg?size=16&amp;color=4c4f69">
+        </button>
+      </div>
       <details class="card" open>
         <summary>Belts / Edges</summary>
         <div class="row">
