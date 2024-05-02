@@ -189,7 +189,7 @@ function even_split(root_node, out_amount, max_split = 3) {
                 for (let i = 0; i < s; i++) {
                     let new_node = new ConveyorNode();
                     let new_back = back.splice(0, into / s);
-                    back = back.slice(into / s);
+                    // back = back.slice(into / s)
                     node.link_to(new_node, node.split_into(s));
                     _split(new_node, into / s, new_back);
                 }
@@ -406,6 +406,7 @@ function main(into, from = undefined, max_split = 3, max_merge = 3) {
         }
     }
     smart_merge(split_nodes, ratio_targets, max_merge);
+    // return root_nodes
     clean_up_graph(root_nodes);
     return root_nodes;
 }
@@ -465,3 +466,4 @@ function find_machine_count(clock, start_at = 2, decimals = 6) {
     }
     return -1;
 }
+//# sourceMappingURL=ConveyorNode.js.map

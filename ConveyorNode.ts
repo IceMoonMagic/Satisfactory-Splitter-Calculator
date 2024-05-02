@@ -240,7 +240,7 @@ function even_split(
                 for (let i = 0; i < s; i++) {
                     let new_node = new ConveyorNode()
                     let new_back = back.splice(0, into / s)
-                    back = back.slice(into / s)
+                    // back = back.slice(into / s)
                     node.link_to(new_node, node.split_into(s))
                     _split(new_node, into / s, new_back)
                 }
@@ -519,6 +519,7 @@ function main(
         }
     } 
     smart_merge(split_nodes, ratio_targets, max_merge)
+    // return root_nodes
     clean_up_graph(root_nodes)
     return root_nodes
 }
