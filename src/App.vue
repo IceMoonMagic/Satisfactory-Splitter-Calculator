@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import HelloWorld from './components/HelloWorld.vue'
 import MachineCount from './components/MachineCount.vue'
-import InputList from './components/InputList.vue';
+import InputList from './components/InputList.vue'
+import GraphView from './components/GraphView.vue'
 import { ref } from 'vue';
 import Decimal from 'decimal.js';
+import { ConveyorNode } from './ConveyorNode';
 
 function default_array() {return [1, 2, 3].map(e => new Decimal(e))}
+function generic_graph() {
+  const roots = [new ConveyorNode(new Decimal(5))]
+  roots[0].link_to(new ConveyorNode(), new Decimal(5))
+  return roots
+}
 
 const foo = ref<Decimal[]>(default_array())
 </script>
@@ -15,6 +22,7 @@ const foo = ref<Decimal[]>(default_array())
   <InputList label="Hello World" v-model="foo"/>
   <p>{{ foo }} {{ foo.length>0 ? Decimal.sum(...foo) : "" }}</p>
   <button @click="foo = default_array()" />
+  <GraphView :graph="generic_graph()"/>
   <div>
     <a href="https://vitejs.dev" target="_blank">
       <img src="/vite.svg" class="logo" alt="Vite logo" />

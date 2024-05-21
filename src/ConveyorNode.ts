@@ -1,4 +1,4 @@
-import { Decimal } from './decimal.js'
+import { Decimal } from 'decimal.js'
 
 class ConveyorLink {
     private _src: ConveyorNode
@@ -46,7 +46,7 @@ class ConveyorLink {
 }
 
 
-enum NODE_TYPES {
+export enum NODE_TYPES {
     Island = '0,0',
     Source = '0,1',
     Source_Splitter = '0,2',
@@ -58,7 +58,7 @@ enum NODE_TYPES {
     Merge_Splitter = '2,2',
 }
 
-class ConveyorNode {
+export class ConveyorNode {
 
     holding: Decimal
     depth: number = 0
@@ -152,7 +152,7 @@ class ConveyorNode {
     }
 }
 
-function findEdgesAndNodes (...root_nodes: ConveyorNode[]) {
+export function findEdgesAndNodes (...root_nodes: ConveyorNode[]) {
     const edges: ConveyorLink[] = new Array()
     const nodes: ConveyorNode[] = new Array()
     function _findEdgesAndNodes(curr_node: ConveyorNode) {
