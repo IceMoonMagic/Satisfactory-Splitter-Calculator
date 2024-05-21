@@ -7,6 +7,8 @@ const props = defineProps({
   values: Array<number|Decimal>
 })
 
+const emit = defineEmits<{update: [inputs: Decimal[]]}>()
+
 interface input {
   id: number
   value: Decimal
@@ -21,7 +23,7 @@ const sum: ComputedRef<Decimal> = computed(() =>
 function addInput(value: Decimal | number = 0) {
   const data = {id: id++, value: new Decimal(value)}
   inputs.value.push(data)
-  watch(data, (newValue) => data.value = new Decimal(newValue.value).toDecimalPlaces(4))
+  emitUpdate()
 } 
 
 function updateInput(e: Event, stored: input) {
@@ -31,11 +33,17 @@ function updateInput(e: Event, stored: input) {
   // Only fix if values differ, as attempting to adda decimal place did not work
   if (!stored.value.eq(e_value)) {
     stored.value = fixed_value
+    emitUpdate()
   }
 }
 
 function removeInput(input: input) {
   inputs.value = inputs.value.filter((i) => i !== input)
+
+}
+
+function emitUpdate(){
+  emit("update", inputs.value.map(i => i.value))
 }
 
 defineExpose(sum)
