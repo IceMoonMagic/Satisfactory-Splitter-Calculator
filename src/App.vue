@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import HelloWorld from './components/HelloWorld.vue'
 import MachineCount from './components/MachineCount.vue'
+import InputList from './components/InputList.vue';
 </script>
 
 <template>
   <MachineCount />
+  <InputList label="Hello World" :values="[1, 2,3]"/>
   <div>
     <a href="https://vitejs.dev" target="_blank">
       <img src="/vite.svg" class="logo" alt="Vite logo" />
