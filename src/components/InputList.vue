@@ -1,49 +1,32 @@
 <script setup lang="ts">
 import Decimal from 'decimal.js'
-import { computed, ComputedRef, ref, Ref, watch} from 'vue'
+import { computed, ComputedRef} from 'vue'
 
 const props = defineProps({
   label: String,
-  values: Array<number|Decimal>
 })
+const inputs = defineModel<Decimal[]>()
 
-const emit = defineEmits<{update: [inputs: Decimal[]]}>()
-
-interface input {
-  id: number
-  value: Decimal
-}
-
-let id = 0
-const inputs: Ref<input[]> = ref([])
 const sum: ComputedRef<Decimal> = computed(() => 
-  (inputs.value.length > 0) ? Decimal.sum(...inputs.value.map(i => i.value)) : new Decimal(0)
+  (inputs.value.length > 0) ? Decimal.sum(...inputs.value) : new Decimal(0)
 )
 
 function addInput(value: Decimal | number = 0) {
-  const data = {id: id++, value: new Decimal(value)}
-  inputs.value.push(data)
-  emitUpdate()
+  inputs.value.push(new Decimal(value))
 } 
 
-function updateInput(e: Event, stored: input) {
+function updateInput(e: Event, index: number) {
   const e_value = new Decimal((e.target as HTMLInputElement).value)
   const fixed_value = e_value.toDecimalPlaces(4)
 
   // Only fix if values differ, as attempting to adda decimal place did not work
-  if (!stored.value.eq(e_value)) {
-    stored.value = fixed_value
-    emitUpdate()
+  if (!inputs.value[index].eq(e_value)) {
+    inputs.value[index] = fixed_value
   }
 }
 
-function removeInput(input: input) {
-  inputs.value = inputs.value.filter((i) => i !== input)
-
-}
-
-function emitUpdate(){
-  emit("update", inputs.value.map(i => i.value))
+function removeInput(index: number) {
+  inputs.value.splice(index, 1)
 }
 
 defineExpose(sum)
@@ -52,9 +35,9 @@ defineExpose(sum)
 <template>
   <div>
     <label v-if="props.label">{{ props.label }}</label>
-    <div v-for="input in inputs" :key="input.id">
-      <input type="number" min="0" :value="input.value" @input="(e) => updateInput(e, input)">
-      <button @click="removeInput(input)">{{ input.value }}</button>
+    <div v-for="i in inputs.length">
+      <input type="number" min="0" :value="inputs[i-1]" @input="(e) => updateInput(e, i-1)">
+      <button @click="removeInput(i-1)">{{ inputs[i-1] }}</button>
     </div>
     <button @click="addInput()">+ ({{ sum }})</button>
   </div>

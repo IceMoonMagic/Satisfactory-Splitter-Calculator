@@ -5,12 +5,16 @@ import InputList from './components/InputList.vue';
 import { ref } from 'vue';
 import Decimal from 'decimal.js';
 
-const foo = ref([])
+function default_array() {return [1, 2, 3].map(e => new Decimal(e))}
+
+const foo = ref<Decimal[]>(default_array())
 </script>
 
 <template>
   <MachineCount />
-  <InputList label="Hello World" :values="[1, 2,3]" @update="(i) => foo = i"/>
+  <InputList label="Hello World" v-model="foo"/>
+  <p>{{ foo }} {{ foo.length>0 ? Decimal.sum(...foo) : "" }}</p>
+  <button @click="foo = default_array()" />
   <div>
     <a href="https://vitejs.dev" target="_blank">
       <img src="/vite.svg" class="logo" alt="Vite logo" />
@@ -19,8 +23,7 @@ const foo = ref([])
       <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
     </a>
   </div>
-  <p>{{ foo }} {{ foo.length>0 ? Decimal.sum(...foo) : "" }}</p>
-  <HelloWorld msg="Vite + Vue" />
+  <!-- <HelloWorld msg="Vite + Vue" /> -->
 </template>
 
 <style scoped>
