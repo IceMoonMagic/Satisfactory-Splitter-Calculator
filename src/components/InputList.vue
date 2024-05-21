@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Decimal from 'decimal.js'
-import { computed, ComputedRef, ref, Ref} from 'vue'
+import { computed, ComputedRef, ref, Ref, watch} from 'vue'
 
 const props = defineProps({
   label: String,
@@ -19,8 +19,20 @@ const sum: ComputedRef<Decimal> = computed(() =>
 )
 
 function addInput(value: Decimal | number = 0) {
-  inputs.value.push({id: id++, value: new Decimal(value)})
+  const data = {id: id++, value: new Decimal(value)}
+  inputs.value.push(data)
+  watch(data, (newValue) => data.value = new Decimal(newValue.value).toDecimalPlaces(4))
 } 
+
+function updateInput(e: Event, stored: input) {
+  const e_value = new Decimal((e.target as HTMLInputElement).value)
+  const fixed_value = e_value.toDecimalPlaces(4)
+
+  // Only fix if values differ, as attempting to adda decimal place did not work
+  if (!stored.value.eq(e_value)) {
+    stored.value = fixed_value
+  }
+}
 
 function removeInput(input: input) {
   inputs.value = inputs.value.filter((i) => i !== input)
@@ -33,7 +45,7 @@ defineExpose(sum)
   <div>
     <label v-if="props.label">{{ props.label }}</label>
     <div v-for="input in inputs" :key="input.id">
-      <input type="number" min="0" v-model="input.value">
+      <input type="number" min="0" :value="input.value" @input="(e) => updateInput(e, input)">
       <button @click="removeInput(input)">{{ input.value }}</button>
     </div>
     <button @click="addInput()">+ ({{ sum }})</button>
