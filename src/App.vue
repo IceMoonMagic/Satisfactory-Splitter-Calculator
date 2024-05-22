@@ -1,37 +1,26 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import { ref } from 'vue'
+import SplitEven from './SplitEven.vue';
+import SplitRatio from './SplitRatio.vue';
 import MachineCount from './components/MachineCount.vue'
-import InputList from './components/InputList.vue'
-import GraphView from './components/GraphView.vue'
-import { ref } from 'vue';
-import Decimal from 'decimal.js';
-import { ConveyorNode } from './ConveyorNode';
 
-function default_array() {return [1, 2, 3].map(e => new Decimal(e))}
-function generic_graph() {
-  const roots = [new ConveyorNode(new Decimal(5))]
-  roots[0].link_to(new ConveyorNode(), new Decimal(5))
-  return roots
-}
-
-const foo = ref<Decimal[]>(default_array())
+const tabs = ref([
+  "Split Ratio",
+  "Split Evenly",
+  "Machine Count"
+])
+const curr_tab = ref(1)
 </script>
 
 <template>
-  <MachineCount />
-  <InputList label="Hello World" v-model="foo"/>
-  <p>{{ foo }} {{ foo.length>0 ? Decimal.sum(...foo) : "" }}</p>
-  <button @click="foo = default_array()" />
-  <GraphView :graph="generic_graph()"/>
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
-  </div>
-  <!-- <HelloWorld msg="Vite + Vue" /> -->
+  <ui>
+    <li v-for="i in 3">
+      <button @click="curr_tab=i">{{ tabs[i-1] }}</button>
+    </li>
+  </ui>
+  <SplitRatio v-if="curr_tab === 1" />
+  <SplitEven v-if="curr_tab === 2" />
+  <MachineCount v-if="curr_tab === 3" />
 </template>
 
 <style scoped>

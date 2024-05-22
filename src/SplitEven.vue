@@ -27,7 +27,9 @@ worker.onmessage = (e) => {
 </script>
 
 <template>
-  <InputList v-model="inputs" />
-  <button @click="calculate()" :disabled="calculating">{{ !calculating ? "Calculate" : "Calculating" }}</button>
-  <GraphView :graph="graph as ConveyorNode[]" />
+  <div>
+    <InputList v-model="inputs" />
+    <button @click="calculate()" :disabled="calculating">{{ !calculating ? "Calculate" : "Calculating" }}</button>
+    <GraphView :graph="graph as ConveyorNode[]" />
+  </div>
 </template>
