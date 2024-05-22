@@ -166,6 +166,33 @@ export function findEdgesAndNodes (...root_nodes: ConveyorNode[]) {
     return {edges: edges, nodes: nodes}
 }
 
+export interface SerializedGraph {
+    edges: {src: number, dst: number, carrying: number}[],
+    nodes: Map<number, number>
+}
+
+export function serialize(...root_nodes: ConveyorNode[]): SerializedGraph {
+    const {edges: edges, nodes: nodes} = findEdgesAndNodes(...root_nodes)
+    const result = {
+        edges: edges.map((edge) => {return {src: edge.src.id, dst: edge.dst.id, carrying: edge.carrying.toNumber()}}),
+        nodes: nodes.reduce<Map<number, number>>((map, node) => {
+                map.set(node.id, node.holding.sub(node.sum_ins).add(node.sum_outs).toNumber())
+                return map
+            }, new Map())
+        }
+    return result
+}
+
+export function deserialize(graph: SerializedGraph): ConveyorNode[] {
+    const nodes: Map<number, ConveyorNode> = new Map()
+    graph.nodes.forEach((v, k) => nodes.set(k, new ConveyorNode(new Decimal(v))))
+    graph.edges.forEach((e) => {nodes.get(e.src).link_to(nodes.get(e.dst), new Decimal(e.carrying))})
+
+    const root_nodes: ConveyorNode[] = new Array<ConveyorNode>
+    nodes.forEach((node) => {if (node.ins.length === 0) root_nodes.push(node)})
+    return root_nodes
+}
+
 function ratio(targets: Decimal[]): Decimal[] {
 
     function gcd(a: Decimal, b: Decimal): Decimal {
@@ -207,7 +234,7 @@ function ratio(targets: Decimal[]): Decimal[] {
     return numerators
 }
 
-function even_split(
+export function even_split(
         root_node: ConveyorNode,
         out_amount: number,
         max_split: number = 3)
@@ -521,25 +548,6 @@ function main(
     smart_merge(split_nodes, ratio_targets, max_merge)
     // return root_nodes
     clean_up_graph(root_nodes)
-    return root_nodes
-}
-
-function main_split(
-    into: Array<number | Decimal>,
-    max_split: number = 3
-): ConveyorNode[] {
-    const root_nodes = new Array()
-    for (let i of into) {
-        const target = new Decimal(i)
-        if (!target.mod(1).eq(0)) {
-            throw new Error(`${target} is not a natural number / int.`)
-        }
-        const root_node = new ConveyorNode(target)
-        const src_node = new ConveyorNode()
-        root_node.link_to(src_node)
-        even_split(src_node, target.toNumber(), max_split)
-        root_nodes.push(root_node)
-    }
     return root_nodes
 }
 
