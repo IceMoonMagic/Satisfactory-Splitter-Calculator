@@ -13,27 +13,18 @@ const curr_tab = ref(1)
 </script>
 
 <template>
-  <ui>
-    <li v-for="i in 3">
-      <button @click="curr_tab=i">{{ tabs[i-1] }}</button>
-    </li>
-  </ui>
-  <SplitRatio v-if="curr_tab === 1" />
-  <SplitEven v-if="curr_tab === 2" />
-  <MachineCount v-if="curr_tab === 3" />
+  <div>
+    <div class=" justify-center flex flex-wrap gap-2 mb-4">
+      <button v-for="i in tabs.length"
+      :class="curr_tab === i ? ' underline decoration-peach' : ''" 
+      @click="curr_tab=i">
+        {{ tabs[i-1] }}
+      </button>
+    </div>
+    <div>
+      <SplitRatio v-if="curr_tab === 1" />
+      <SplitEven v-if="curr_tab === 2" />
+      <MachineCount v-if="curr_tab === 3" />
+    </div>
+  </div>
 </template>
-
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
-</style>

@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { ConveyorNode, deserialize } from './ConveyorNode'
 import InputList from './components/InputList.vue'
 import GraphView from './components/GraphView.vue'
+import CalculateButton from './components/CalculateButton.vue'
 
 const inputs = ref<Decimal[]>([new Decimal(3)])
 const graph = ref<ConveyorNode[]>(null)
@@ -16,10 +17,12 @@ function calculate() {
   }
   calculating.value = true
   const message = {into: inputs.value.map(e => e.toNumber()), max_split: 3}
+  console.log(message)
   worker.postMessage(message)
 }
 
 worker.onmessage = (e) => {
+  console.log(e.data)
   const e_graph = deserialize(e.data)
   graph.value = e_graph
   calculating.value = false
@@ -27,9 +30,9 @@ worker.onmessage = (e) => {
 </script>
 
 <template>
-  <div>
-    <InputList v-model="inputs" />
-    <button @click="calculate()" :disabled="calculating">{{ !calculating ? "Calculate" : "Calculating" }}</button>
+  <div class="space-y-2">
+    <InputList label="Sources" v-model="inputs" />
+    <CalculateButton :working="calculating" @click="calculate()"/>
     <GraphView :graph="graph as ConveyorNode[]" />
   </div>
 </template>

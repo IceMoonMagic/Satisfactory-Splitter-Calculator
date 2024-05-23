@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Decimal from 'decimal.js'
 import { computed, ComputedRef} from 'vue'
+import { TrashIcon, PlusIcon } from '@heroicons/vue/16/solid';
 
 const props = defineProps({
   label: String,
@@ -29,16 +30,21 @@ function removeInput(index: number) {
   inputs.value.splice(index, 1)
 }
 
-defineExpose(sum)
+// defineExpose(sum)
 </script>
 
 <template>
-  <div>
+  <div class=" space-y-2 outline outline-lavender outline-1 p-2 rounded-lg w-full">
     <label v-if="props.label">{{ props.label }}</label>
-    <div v-for="i in inputs.length">
-      <input type="number" min="0" :value="inputs[i-1]" @input="(e) => updateInput(e, i-1)">
-      <button @click="removeInput(i-1)">{{ inputs[i-1] }}</button>
+    <div v-for="i in inputs.length" class="flex space-x-2">
+      <input class="rounded-lg p-2 w-full" type="number" min="0" :value="inputs[i-1]" @input="(e) => updateInput(e, i-1)">
+      <button class="latte bg-red text-base" @click="removeInput(i-1)">
+        <TrashIcon class=" size-5 latte text-base" />
+      </button>
     </div>
-    <button @click="addInput()">+ ({{ sum }})</button>
+    <button class="latte bg-green text-base w-full flex items-center justify-center" @click="addInput()">
+      <PlusIcon class=" size-5 latte text-base" />
+    </button>
+    <code class=" language-html"></code>
   </div>
 </template>
