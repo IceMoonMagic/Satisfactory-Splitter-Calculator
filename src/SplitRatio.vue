@@ -31,8 +31,8 @@ function calculate() {
   
   calculating.value = true
   const message = {
-    into: outputs.value.map(e => e.toNumber()), 
-    from: inputs.value.map(e => e.toNumber()),
+    into: outputs.value.filter(e => !e.eq(0)).map(e => e.toNumber()), 
+    from: inputs.value.filter(e => !e.eq(0)).map(e => e.toNumber()),
     max_split: 3, max_merge: 3,
     ratio_perms: false
   }

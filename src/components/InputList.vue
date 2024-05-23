@@ -28,6 +28,9 @@ function updateInput(e: Event, index: number) {
 
 function removeInput(index: number) {
   inputs.value.splice(index, 1)
+  if (inputs.value.length === 0) {
+    addInput()
+  }
 }
 
 // defineExpose(sum)

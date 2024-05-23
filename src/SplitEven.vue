@@ -12,17 +12,17 @@ const calculating = ref<boolean>(false)
 const worker = new Worker(new URL('./workers/splitEven.ts', import.meta.url))
 
 function calculate() {
-  if (inputs.value.length == 0 || Decimal.sum(...inputs.value).eq(0)) {
+  if (inputs.value.length == 0 || Decimal.sum(...inputs.value).lt(2)) {
       return
   }
   calculating.value = true
-  const message = {into: inputs.value.map(e => e.toNumber()), max_split: 3}
-  console.log(message)
+  const message = {
+    into: inputs.value.filter(e => !e.eq(0)).map(e => e.toNumber()),
+    max_split: 3}
   worker.postMessage(message)
 }
 
 worker.onmessage = (e) => {
-  console.log(e.data)
   const e_graph = deserialize(e.data)
   graph.value = e_graph
   calculating.value = false
