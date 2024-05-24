@@ -22,9 +22,9 @@ const curr_tab = ref(1)
       </button>
     </div>
     <div>
-      <SplitRatio v-if="curr_tab === 1" />
-      <SplitEven v-if="curr_tab === 2" />
-      <MachineCount v-if="curr_tab === 3" />
+      <SplitRatio v-show="curr_tab === 1" />
+      <SplitEven v-show="curr_tab === 2" />
+      <MachineCount v-show="curr_tab === 3" />
     </div>
   </div>
 </template>
