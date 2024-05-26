@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ConveyorNode, findEdgesAndNodes } from '../ConveyorNode.ts'
+import { ConveyorNode, NODE_TYPES, findEdgesAndNodes } from '../ConveyorNode.ts'
 const props = defineProps({
   graph: Array<ConveyorNode>,
 })
@@ -12,7 +12,25 @@ const as_dot = computed(() => {
   const edgesAndNodes = findEdgesAndNodes(...props.graph)
   let output = "digraph G {\n"
   for (let node of edgesAndNodes.nodes) {
-    output += `\t${node.id} [label="${node.sum_outs}"];\n`
+    let label: string = node.sum_outs.toString(), shape: string = ""
+    switch (node.node_type) {
+      case NODE_TYPES.Source:
+        shape = "house"
+        break
+      case NODE_TYPES.Splitter:
+        shape = "diamond"
+        break
+      case NODE_TYPES.Merger:
+        shape = "square"
+        break
+      case NODE_TYPES.Destination:
+        shape = "invhouse"
+        label = node.sum_ins.toString()
+        break
+      default:
+        label = `${node.sum_ins} | ${node.holding} | ${node.sum_outs}`
+    }
+    output += `\t${node.id} [label="${label}" shape="${shape}"];\n`
   }
 
   for (let edge of edgesAndNodes.edges) {
