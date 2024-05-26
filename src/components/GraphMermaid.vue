@@ -85,6 +85,6 @@ const svg = ref<SVGSVGElement>(null)
 <template>
   <!-- Use https://prismjs.com/ for highlighting  -->
   <GraphExport :text="as_mermaid" :svg="svg" :link="link" mime="application/vnd.mermaid" filename="SplitResult.mmd" />
-  <VueMermaidString ref="svg" :value="as_mermaid" class="h-fit max-w-fit rounded-lg center"/>
-  <textarea readonly :rows="Math.min(as_mermaid.split(/\n/).length, 10)" class="font-mono rounded p-2 w-full">{{ as_mermaid }}</textarea>
+  <VueMermaidString ref="svg" :value="as_mermaid" class="h-fit max-w-fit rounded-lg center bg-white"/>
+  <textarea readonly :rows="Math.min(as_mermaid.split(/\n/).length, 10)" class="font-mono rounded-lg p-2 w-full">{{ as_mermaid }}</textarea>
 </template>
