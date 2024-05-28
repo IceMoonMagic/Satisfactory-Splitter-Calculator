@@ -1,16 +1,11 @@
 <script setup lang="ts">
 import Decimal from 'decimal.js'
-import { computed, ComputedRef} from 'vue'
 import { TrashIcon, PlusIcon } from '@heroicons/vue/16/solid';
 
 const props = defineProps({
   label: String,
 })
 const inputs = defineModel<Decimal[]>()
-
-const sum: ComputedRef<Decimal> = computed(() => 
-  (inputs.value.length > 0) ? Decimal.sum(...inputs.value) : new Decimal(0)
-)
 
 function addInput(value: Decimal | number = 0) {
   inputs.value.push(new Decimal(value))
@@ -32,8 +27,6 @@ function removeInput(index: number) {
     addInput()
   }
 }
-
-// defineExpose(sum)
 </script>
 
 <template>

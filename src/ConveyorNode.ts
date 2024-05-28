@@ -499,16 +499,3 @@ export function clean_up_graph(
 
     return key_nodes
 }
-
-function find_machine_count(
-    clock: Decimal,
-    start_at: number = 2,
-    decimals: number = 6
-) {
-    for (let count = start_at; clock.div(count).gte(0.1); count++) {
-        if (clock.div(count).toDecimalPlaces(decimals).mul(count).eq(clock)){
-            return count
-        }
-    }
-    return -1
-}
