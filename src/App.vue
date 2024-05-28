@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import SplitEven from './SplitEven.vue';
 import SplitRatio from './SplitRatio.vue';
 import MachineCount from './components/MachineCount.vue'
+import { InformationCircleIcon } from '@heroicons/vue/16/solid';
 
 const tabs = ref([
   "Split Ratio",
@@ -13,7 +14,11 @@ const curr_tab = ref(1)
 </script>
 
 <template>
-  <div>
+  <div class="relative">
+    <a href="https://github.com/IceMoonMagic/Satisfactory-Splitter-Calculator" target="_blank"
+    class="absolute right-4">
+      <InformationCircleIcon class="size-5 text-text"/>    
+    </a>
     <div class=" justify-center flex flex-wrap gap-2 mb-4">
       <button v-for="i in tabs.length"
       :class="curr_tab === i ? ' underline decoration-peach' : ''" 

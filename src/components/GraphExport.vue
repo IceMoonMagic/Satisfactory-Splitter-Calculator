@@ -44,8 +44,8 @@ function click_link() {
       class="latte bg-blue text-base"
     >Send to External Editor
     </button>
-    <a href="https://github.com/IceMoonMagic/Satisfactory-Splitter-Calculator" target="_blank">
-      <InformationCircleIcon class=" size-5 latte text-base"/>
+    <a href="https://github.com/IceMoonMagic/Satisfactory-Splitter-Calculator?tab=readme-ov-file#outputs" target="_blank">
+      <InformationCircleIcon class=" size-5 text-text"/>
     </a>
   </div>
 </template>
