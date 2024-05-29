@@ -1,6 +1,12 @@
 # Satisfactory Splitter Calculator
 A tool to help calculate how to split conveyors in Satisfactory into specific ratios.
 
+> [!NOTE]
+> A [manifold](https://satisfactory.wiki.gg/wiki/Manifold) can be used in most, if not all,
+> use cases for this project.
+> That doesn't mean you shouldn't / can't use balancers. 
+> Play the game however *you* want to play.&emsp;(°◡°♡)
+
 ## Usage
 Free to use on [GitHub Pages](https://icemoonmagic.github.io/Satisfactory-Splitter-Calculator/)
 
@@ -10,8 +16,28 @@ If these don't match up, it will be corrected by adding the difference to the le
 
 Inputs must be greater than 0 for it to work. Aso, changing the order of sources and targets may result in larger or smaller graphs.
 
+> [!NOTE]
+> This is similar to a [belt balancer](https://satisfactory.wiki.gg/wiki/Balancer#Belt_balancer), but allowing differing output amounts.
+
+> [!IMPORTANT]
+> This *will not* guarantee that items from all inputs make it to all outputs.
+> Just that if fed the specified items/min per input, it will output the specified items/min per output.
+
+The resulting graph tends to vary depending on the order of the lists. 
+To help with that, there is an option to "Calculate all permutations and show simplest".
+This will run the calculation on every possible way to order both inputs and outputs, 
+taking the one with smallest number of nodes + number of edges.
+E.g. [1, 2, 3] -> [[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]].
+
+> [!CAUTION]
+The number of permutations here is factorial(number of inputs) * factorial(number of outputs), which gets *very* big *very* fast, which will make it take a *very* long time.
+The option to enable shows how many permutations there are.
+
 ### Split Evenly
 Similar to `Split Ratio`, will break the sources into `N` outputs (where `N` equals the sum of the sources).
+
+> [!NOTE]
+> This is a [load balancer](https://satisfactory.wiki.gg/wiki/Balancer#Load_balancer).
 
 ### Outputs
 The output for Split Ratio and Split Evenly can be displayed with either [Graphviz](https://www.graphviz.org/) or [Mermaid](mermaid.js.org). 
@@ -62,7 +88,7 @@ The `ConveyorNode`s and `ConveyorLink`s that are used internally represent nodes
 
 </details>
 
-## Possible Future Additions
+## *Possible* Future Additions
 - Re-Implement using smart splitters to simplify outputs (like in Python Version)
 - Splitter "Playground", allowing manual editing of graph
 
