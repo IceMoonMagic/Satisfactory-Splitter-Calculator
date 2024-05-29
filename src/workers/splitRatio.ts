@@ -10,7 +10,7 @@ onmessage = (e) => {
   if (e.data.ratio_perms !== true) {
     graph = main(into, from, max_split, max_merge)
   } else {
-    graph = main_find_best(into, from, max_split, max_merge)
+    graph = main_find_best(into, from, max_split, max_merge, true)
   }
   
   const keys = serialize(...graph)
@@ -72,7 +72,8 @@ function main_find_best(
   into: Array<number | Decimal>,
   from: Array<number | Decimal> = undefined,
   max_split: number = 3,
-  max_merge: number = 3
+  max_merge: number = 3,
+  post_messages: boolean = false
 ): ConveyorNode[] {
   function* permutations(elements: any[]) {
     if (elements === undefined) {
@@ -91,12 +92,19 @@ function main_find_best(
       }
     }
   }
+
+  const num_perms = (
+    into.reduce<number>((factorial: number, _, i) => factorial * (i+1), 1)
+    * from.reduce<number>((factorial: number, _, i) => factorial * (i+1) , 1)
+  )
   
   let best_start: ConveyorNode[]
   let best_lines: number
+  let counter = 1
   
   for (let into_perm of permutations(into)) {
     for (let from_perm of permutations(from)) {
+      if (post_messages) {postMessage(`(${counter++}/${num_perms})`)}
       const root_nodes = main(into_perm, from_perm, max_split, max_merge)
       const edgesAndNodes = findEdgesAndNodes(...root_nodes)
       const lines = edgesAndNodes.edges.length + edgesAndNodes.nodes.length

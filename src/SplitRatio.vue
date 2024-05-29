@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Decimal from 'decimal.js'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { ConveyorNode, deserialize } from './ConveyorNode'
 import InputList from './components/InputList.vue'
 import GraphView from './components/GraphView.vue'
@@ -12,6 +12,8 @@ const graph = ref<ConveyorNode[]>(null)
 const calculating = ref<boolean>(false)
 let worker = new Worker(new URL('./workers/splitRatio.ts', import.meta.url))
 worker.onmessage = worker_on_message
+const BASE_CALC_TEXT = 'Calculating'
+const calc_text = ref(BASE_CALC_TEXT)
 
 function calculate() {
   const sum_sources = Decimal.sum(...inputs.value)
@@ -30,13 +32,15 @@ function calculate() {
     // return calculate()
   }
   
+  calc_text.value = BASE_CALC_TEXT
   calculating.value = true
   const message = {
     into: outputs.value.filter(e => !e.eq(0)).map(e => e.toNumber()), 
     from: inputs.value.filter(e => !e.eq(0)).map(e => e.toNumber()),
     max_split: 3, max_merge: 3,
-    ratio_perms: false
+    ratio_perms: try_perms.value
   }
+  // console.debug(message)
   worker.postMessage(message)
 }
 
@@ -48,10 +52,21 @@ function abort() {
 }
 
 function worker_on_message(e: MessageEvent) {
+  if (typeof(e.data) === 'string') {
+    // console.debug(e.data)
+    calc_text.value = `${BASE_CALC_TEXT} ${e.data}`
+    return
+  }
   const e_graph = deserialize(e.data)
   graph.value = e_graph
   calculating.value = false
 }
+
+const num_perms = computed(() => (
+    inputs.value.reduce<number>((factorial: number, _, i) => factorial * (i+1), 1)
+    * outputs.value.reduce<number>((factorial: number, _, i) => factorial * (i+1) , 1)
+  ))
+const try_perms = ref(false)
 </script>
 
 <template>
@@ -60,7 +75,13 @@ function worker_on_message(e: MessageEvent) {
       <InputList label="Sources" v-model="inputs" />
       <InputList label="Targets" v-model="outputs" />
     </div>
-    <CalculateButton :working="calculating" @start="calculate()" @abort="abort()"/>
+    <div class="flex flex-wrap gap-2 justify-center">
+      <span class="bg-overlay0 rounded-lg p-2">
+        Calculate all ({{ num_perms }}) permutations and show simplest
+      </span>
+      <input type="checkbox" v-model="try_perms"/>
+    </div>
+    <CalculateButton :working="calculating" :working_text="calc_text" @start="calculate()" @abort="abort()"/>
     <GraphView :graph="graph as ConveyorNode[]" />
   </div>
 </template>
