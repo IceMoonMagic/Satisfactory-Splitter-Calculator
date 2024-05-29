@@ -10,7 +10,8 @@ const inputs = ref<Decimal[]>([new Decimal(60)])
 const outputs = ref<Decimal[]>([30, 15, 15].map((e) => new Decimal(e)))
 const graph = ref<ConveyorNode[]>(null)
 const calculating = ref<boolean>(false)
-const worker = new Worker(new URL('./workers/splitRatio.ts', import.meta.url))
+let worker = new Worker(new URL('./workers/splitRatio.ts', import.meta.url))
+worker.onmessage = worker_on_message
 
 function calculate() {
   const sum_sources = Decimal.sum(...inputs.value)
@@ -39,7 +40,14 @@ function calculate() {
   worker.postMessage(message)
 }
 
-worker.onmessage = (e) => {
+function abort() {
+  worker.terminate()
+  worker = new Worker(new URL('./workers/splitRatio.ts', import.meta.url))
+  worker.onmessage = worker_on_message
+  calculating.value = false
+}
+
+function worker_on_message(e: MessageEvent) {
   const e_graph = deserialize(e.data)
   graph.value = e_graph
   calculating.value = false
@@ -52,7 +60,7 @@ worker.onmessage = (e) => {
       <InputList label="Sources" v-model="inputs" />
       <InputList label="Targets" v-model="outputs" />
     </div>
-    <CalculateButton :working="calculating" @click="calculate()"/>
+    <CalculateButton :working="calculating" @start="calculate()" @abort="abort()"/>
     <GraphView :graph="graph as ConveyorNode[]" />
   </div>
 </template>
