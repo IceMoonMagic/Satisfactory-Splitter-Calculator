@@ -32,18 +32,20 @@ function click_link() {
       class="latte bg-blue text-base"
     >Download Text
     </button>
-    <button @click="" disabled
+    <!-- <button @click="" disabled
       class="latte bg-blue text-base line-through"
     >Download SVG
     </button>
     <button @click="" disabled
       class="latte bg-blue text-base line-through"
     >Download PNG
-    </button>
-    <button @click="click_link()" :disabled="text === ''" 
-      class="latte bg-blue text-base"
-    >Send to External Editor
-    </button>
+    </button> -->
+    <a :href="props.link" target="_blank" :class="text === '' ? 'pointer-events-none' : ''">
+      <button :disabled="text === ''" 
+        class="latte bg-blue text-base"
+      >Send to External Editor
+      </button>
+    </a>
     <a href="https://github.com/IceMoonMagic/Satisfactory-Splitter-Calculator?tab=readme-ov-file#outputs" target="_blank">
       <InformationCircleIcon class=" size-5 text-text"/>
     </a>
