@@ -39,7 +39,7 @@ function worker_on_message(e: MessageEvent) {
 
 <template>
   <div class="space-y-2">
-    <InputList label="Sources" v-model="inputs" />
+    <InputList label="Sources" v-model="inputs" :decimal_places="0" />
     <CalculateButton :working="calculating" @start="calculate()" @abort="abort()"/>
     <GraphView :graph="graph as ConveyorNode[]" />
   </div>

@@ -3,6 +3,7 @@ import Decimal from 'decimal.js'
 import { TrashIcon, PlusIcon } from '@heroicons/vue/16/solid';
 
 const props = defineProps({
+  decimal_places: Number || undefined,
   label: String,
 })
 const inputs = defineModel<Decimal[]>()
@@ -12,12 +13,17 @@ function addInput(value: Decimal | number = 0) {
 } 
 
 function updateInput(e: Event, index: number) {
+  if ((e.target as HTMLInputElement).value === "") return
   const e_value = new Decimal((e.target as HTMLInputElement).value)
-  const fixed_value = e_value.toDecimalPlaces(4)
+  // console.debug(props.decimal_places)
+  if (props.decimal_places !== undefined) {
+    const fixed_value = e_value.toDecimalPlaces(props.decimal_places)
+    // console.debug(fixed_value.toNumber())
 
-  // Only fix if values differ, as attempting to adda decimal place did not work
-  if (!inputs.value[index].eq(e_value)) {
-    inputs.value[index] = fixed_value
+    // Only fix if values differ, as attempting to add a decimal place did not work
+    if (props.decimal_places === 0 || !inputs.value[index].eq(e_value)) {
+      inputs.value[index] = fixed_value
+    }
   }
 }
 
