@@ -81,10 +81,16 @@ const simplifiedInputs = computed<SimplifiedRow[]>(() => {
 <template>
   <div class=" space-y-2 outline outline-lavender outline-1 p-2 rounded-lg w-full">
     <label v-if="props.label">{{ props.label }}</label>
+    <div class="flex space-x-2">
+      <span class="px-2 w-full">Items per Minute</span>
+      <span>&nbsp;</span>
+      <span class="px-2 w-2/5">Times</span>
+      <span class="px-2">Delete</span>
+    </div>
     <div v-for="row in simplifiedInputs" class="flex space-x-2">
       <input class="rounded-lg p-2 w-full" type="number" min="0" :value="row.input" @input="(e) => updateInput(e, row)">
-      <span> x</span>
-      <input class="rounded-lg p-2 w-full" type="number" min="1" :value="row.repeat"
+      <span class="pt-4">x</span>
+      <input class="rounded-lg p-2 w-2/5" type="number" min="1" :value="row.repeat"
         @input="(e) => updateRepeat(e, row)">
       <button class="latte bg-red text-base" @click="removeInput(row)">
         <TrashIcon class=" size-5 latte text-base" />
