@@ -17,6 +17,7 @@ interface SimplifiedRow {
 
 function addInput(value: Decimal | number = 0) {
   inputs.value.push(new Decimal(value))
+  inputs.value.push(new Decimal(-1))
 }
 
 function updateInput(e: Event, row: SimplifiedRow) {
@@ -36,6 +37,8 @@ function updateRepeat(e: Event, row: SimplifiedRow) {
   if ((e.target as HTMLInputElement).value === "") return
   const e_value = Number((e.target as HTMLInputElement).value)
   const repeat = Math.floor(e_value)
+  if (repeat <= 0) { removeInput(row); return }
+
   const repeat_change = repeat - row.repeat
   if (repeat_change > 0) {
     for (let iter = 0; iter < repeat_change; iter++) {
@@ -49,7 +52,7 @@ function updateRepeat(e: Event, row: SimplifiedRow) {
 }
 
 function removeInput(row: SimplifiedRow) {
-  inputs.value.splice(row.index, row.repeat)
+  inputs.value.splice(row.index, row.repeat + 1)
   if (inputs.value.length === 0) {
     addInput()
   }
@@ -70,9 +73,8 @@ const simplifiedInputs = computed<SimplifiedRow[]>(() => {
       })
     }
   }
-  return simplified
-}
-)
+  return simplified.filter(e => e.input.gt(-1))
+})
 
 </script>
 

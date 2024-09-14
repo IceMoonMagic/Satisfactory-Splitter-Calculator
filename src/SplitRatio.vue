@@ -6,8 +6,8 @@ import InputList from './components/InputList.vue'
 import GraphView from './components/GraphView.vue'
 import CalculateButton from './components/CalculateButton.vue'
 
-const inputs = ref<Decimal[]>([new Decimal(60)])
-const outputs = ref<Decimal[]>([30, 15, 15].map((e) => new Decimal(e)))
+const inputs = ref<Decimal[]>([new Decimal(60), new Decimal(-1)])
+const outputs = ref<Decimal[]>([30, -1, 15, 15, -1].map((e) => new Decimal(e)))
 const graph = ref<ConveyorNode[]>(null)
 const calculating = ref<boolean>(false)
 let worker = new Worker(new URL('./workers/splitRatio.ts', import.meta.url))
@@ -16,12 +16,12 @@ const BASE_CALC_TEXT = 'Calculating'
 const calc_text = ref(BASE_CALC_TEXT)
 
 function calculate() {
-  const sum_sources = Decimal.sum(...inputs.value)
-  const sum_targets = Decimal.sum(...outputs.value)
-  
+  const sum_sources = Decimal.sum(...inputs.value.filter(e => e.gt(0)))
+  const sum_targets = Decimal.sum(...outputs.value.filter(e => e.gt(0)))
+
   if (sum_sources.eq(0) && sum_targets.eq(0)) {
     return
-    
+
   } else if (sum_sources.lt(sum_targets)) {
     const diff = sum_targets.sub(sum_sources)
     inputs.value.push(diff)
@@ -31,12 +31,12 @@ function calculate() {
     outputs.value.push(diff)
     // return calculate()
   }
-  
+
   calc_text.value = BASE_CALC_TEXT
   calculating.value = true
   const message = {
-    into: outputs.value.filter(e => !e.eq(0)).map(e => e.toNumber()), 
-    from: inputs.value.filter(e => !e.eq(0)).map(e => e.toNumber()),
+    into: outputs.value.filter(e => e.gt(0)).map(e => e.toNumber()),
+    from: inputs.value.filter(e => e.gt(0)).map(e => e.toNumber()),
     max_split: 3, max_merge: 3,
     ratio_perms: try_perms.value
   }
@@ -52,7 +52,7 @@ function abort() {
 }
 
 function worker_on_message(e: MessageEvent) {
-  if (typeof(e.data) === 'string') {
+  if (typeof (e.data) === 'string') {
     // console.debug(e.data)
     calc_text.value = `${BASE_CALC_TEXT} ${e.data}`
     return
@@ -63,9 +63,9 @@ function worker_on_message(e: MessageEvent) {
 }
 
 const num_perms = computed(() => (
-    inputs.value.reduce<number>((factorial: number, _, i) => factorial * (i+1), 1)
-    * outputs.value.reduce<number>((factorial: number, _, i) => factorial * (i+1) , 1)
-  ))
+  inputs.value.filter(e => e.gt(0)).reduce<number>((factorial: number, _, i) => factorial * (i + 1), 1)
+  * outputs.value.filter(e => e.gt(0)).reduce<number>((factorial: number, _, i) => factorial * (i + 1), 1)
+))
 const try_perms = ref(false)
 </script>
 
@@ -79,9 +79,9 @@ const try_perms = ref(false)
       <span class="bg-overlay0 rounded-lg p-2">
         Calculate all ({{ num_perms }}) permutations and show simplest
       </span>
-      <input type="checkbox" v-model="try_perms"/>
+      <input type="checkbox" v-model="try_perms" />
     </div>
-    <CalculateButton :working="calculating" :working_text="calc_text" @start="calculate()" @abort="abort()"/>
+    <CalculateButton :working="calculating" :working_text="calc_text" @start="calculate()" @abort="abort()" />
     <GraphView :graph="graph as ConveyorNode[]" />
   </div>
 </template>
