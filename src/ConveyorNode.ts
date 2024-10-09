@@ -166,6 +166,20 @@ export function findEdgesAndNodes (...root_nodes: ConveyorNode[]) {
     return {edges: edges, nodes: nodes}
 }
 
+export function findPotentialBottlenecks(...root_nodes: ConveyorNode[]): ConveyorLink[] {
+    const bottlenecks: ConveyorLink[] = new Array()
+    const seen_nodes: ConveyorNode[] = new Array()
+    function _findBottlenecks(curr_node: ConveyorNode, threshold: Decimal) {
+        if (!seen_nodes.includes(curr_node)) { 
+            seen_nodes.push(curr_node)
+            curr_node.outs.forEach((link) => {if (link.carrying.gt(threshold)) bottlenecks.push(link)})
+            curr_node.outs.forEach((link) => _findBottlenecks(link.dst, threshold))
+        }
+    }
+    root_nodes.forEach((node) => _findBottlenecks(node, node.sum_outs))
+    return bottlenecks
+}
+
 export interface SerializedGraph {
     edges: {src: number, dst: number, carrying: number}[],
     nodes: Map<number, number>

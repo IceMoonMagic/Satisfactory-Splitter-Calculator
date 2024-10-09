@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ConveyorNode, NODE_TYPES, findEdgesAndNodes } from '../ConveyorNode.ts'
+import { ConveyorNode, NODE_TYPES, findEdgesAndNodes, findPotentialBottlenecks } from '../ConveyorNode.ts'
 import { instance } from "@viz-js/viz"
 import GraphExport from './GraphExport.vue';
 
 const props = defineProps({
   graph: Array<ConveyorNode>,
+  bottleneck: Boolean,
 })
 
 const as_dot = computed(() => {
@@ -35,9 +36,13 @@ const as_dot = computed(() => {
     }
     output += `\t${node.id} [label="${label}" shape="${shape}"];\n`
   }
-
+  const bottlenecks = findPotentialBottlenecks(...props.graph)
   for (let edge of edgesAndNodes.edges) {
-    output += `\t${edge.src.id} -> ${edge.dst.id} [label="${edge.carrying}"];\n`
+    output += `\t${edge.src.id} -> ${edge.dst.id} [label="${edge.carrying}"`
+    if (props.bottleneck && bottlenecks.includes(edge)) {
+      output += " penwidth=2.0"
+    }
+    output += "];\n"
   }
   output += "}"
   instance().then(viz => {

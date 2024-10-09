@@ -9,16 +9,17 @@ const props = defineProps({
 })
 
 const renderer = ref('GraphViz')
+const highlight_bottleneck = ref(false)
 </script>
 
 <template>
-<label for="select_graph">Choose Graph Renderer: </label>
-<select name="select_graph" v-model="renderer"
-  class="p-2 rounded-lg"
->
-  <option>GraphViz</option>
-  <option>Mermaid</option>
-</select>
-<GraphGraphviz :graph="props.graph" v-if="renderer === 'GraphViz'" />
-<GraphMermaid :graph="props.graph" v-else-if="renderer === 'Mermaid'" />
+  <label for="select_graph">Choose Graph Renderer: </label>
+  <select name="select_graph" v-model="renderer" class="p-2 rounded-lg">
+    <option>GraphViz</option>
+    <option>Mermaid</option>
+  </select>
+  <label for="highlight_bottleneck" class="ml-4 mr-2">Highlight Potential Bottlenecks?</label>
+  <input type="checkbox" name="highlight_bottleneck" v-model="highlight_bottleneck" />
+  <GraphGraphviz :graph="props.graph" :bottleneck="highlight_bottleneck" v-if="renderer === 'GraphViz'" />
+  <GraphMermaid :graph="props.graph" :bottleneck="highlight_bottleneck" v-else-if="renderer === 'Mermaid'" />
 </template>
