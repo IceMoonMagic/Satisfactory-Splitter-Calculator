@@ -47,7 +47,9 @@ const as_dot = computed(() => {
   output += "}"
   instance().then(viz => {
     graphviz_svg.value = viz.renderSVGElement(output)
-    graphviz_svg.value.classList.add("rounded-lg")
+    graphviz_svg.value.style.height = 'unset'
+    const given_width = graphviz_svg.value.width.baseVal.valueAsString
+    graphviz_svg.value.style['max-width'] = `min(${given_width}, 100%)`
   })
   return output
 })
@@ -62,7 +64,12 @@ const link = computed(() => {
 
 <template>
   <!-- Use https://prismjs.com/ for highlighting  -->
-  <GraphExport :text="as_dot" :svg="graphviz_svg" :link="link" mime="text/vnd.graphviz" filename="SplitResult.dot"/>
-  <div v-html="graphviz_svg.outerHTML" v-if="graphviz_svg !== null"/>
-  <textarea readonly :rows="Math.min(as_dot.split(/\n/).length, 10)" class="font-mono rounded-lg p-2 w-full">{{ as_dot }}</textarea>
+  <GraphExport :text="as_dot" :svg="graphviz_svg" :link="link" mime="text/vnd.graphviz" filename="SplitResult.dot" />
+  <div v-html="graphviz_svg.outerHTML" v-if="graphviz_svg !== null"
+    class="h-fit max-w-fill rounded-lg content-center bg-white [&>svg]:m-auto overflow-hidden" />
+  <details>
+    <summary>Text Output</summary>
+    <textarea readonly :rows="as_dot.split(/\n/).length"
+      class="font-mono rounded-lg p-2 w-full whitespace-pre">{{ as_dot }}</textarea>
+  </details>
 </template>
