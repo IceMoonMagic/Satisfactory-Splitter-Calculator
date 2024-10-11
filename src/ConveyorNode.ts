@@ -166,22 +166,37 @@ export function findEdgesAndNodes (...root_nodes: ConveyorNode[]) {
     return {edges: edges, nodes: nodes}
 }
 
-export function findPotentialBottlenecks(...root_nodes: ConveyorNode[]): ConveyorLink[] {
+/**
+ * Find all edges that *could* be a bottleneck (based on carrying vs belt speeds).
+ * Only use on split graphs, do not merge multiple roots!
+ * This *should* only occur on loopback nodes.
+ * 
+ * If threshold is provided, assumes all sources and targets are within that threshold.
+ * Otherwise, assumes all of a root's children are smaller than it (excluding loopbacks).
+ * @param root_nodes Nodes at the top of graphs to traverse
+ * @param threshold Maxiumum allowable link.carrying
+ * @returns 
+ */
+export function findLoopBackBottlenecks(root_nodes: ConveyorNode[], threshold?: number | Decimal): ConveyorLink[] {
     const bottlenecks: ConveyorLink[] = new Array()
     const seen_nodes: ConveyorNode[] = new Array()
-    function _findBottlenecks(curr_node: ConveyorNode, threshold: Decimal) {
+    function _findBottlenecks(curr_node: ConveyorNode, threshold_: number | Decimal) {
         if (!seen_nodes.includes(curr_node)) { 
             seen_nodes.push(curr_node)
-            curr_node.outs.forEach((link) => {if (link.carrying.gt(threshold)) bottlenecks.push(link)})
-            curr_node.outs.forEach((link) => _findBottlenecks(link.dst, threshold))
+            curr_node.outs.forEach((link) => {if (link.carrying.gt(threshold_)) bottlenecks.push(link)})
+            curr_node.outs.forEach((link) => _findBottlenecks(link.dst, threshold_))
         }
     }
-    root_nodes.forEach((node) => _findBottlenecks(node, node.sum_outs))
+    root_nodes.forEach((node) => _findBottlenecks(node, threshold ?? node.sum_outs))
+    console.log(bottlenecks)
     return bottlenecks
 }
 
 /**
- * Replaces a simple bottlenecking loopback with a more complex non-bottlenecking one
+ * Replaces a simple bottlenecking loopback with a more complex non-bottlenecking one.
+ * 
+ * Assumes the specific layout of `src -> merge; loop -> merge; merge -(replace_link)-> split; split -> (N children)`
+ * 
  * See https://satisfactory.wiki.gg/wiki/Balancer#/media/File:Balancer_odd.png
  * @param replace_link Link between loopback merger and next splitter
  */

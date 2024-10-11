@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ConveyorNode, NODE_TYPES, findEdgesAndNodes, findPotentialBottlenecks } from '../ConveyorNode.ts'
+import { ConveyorNode, NODE_TYPES, findEdgesAndNodes, findLoopBackBottlenecks } from '../ConveyorNode.ts'
 import { instance } from "@viz-js/viz"
 import GraphExport from './GraphExport.vue';
 
@@ -36,7 +36,7 @@ const as_dot = computed(() => {
     }
     output += `\t${node.id} [label="${label}" shape="${shape}"];\n`
   }
-  const bottlenecks = findPotentialBottlenecks(...props.graph)
+  const bottlenecks = findLoopBackBottlenecks(props.graph)
   for (let edge of edgesAndNodes.edges) {
     output += `\t${edge.src.id} -> ${edge.dst.id} [label="${edge.carrying}"`
     if (props.bottleneck && bottlenecks.includes(edge)) {

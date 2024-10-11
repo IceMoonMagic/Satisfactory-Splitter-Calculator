@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ConveyorNode, NODE_TYPES, findEdgesAndNodes, findPotentialBottlenecks } from '../ConveyorNode.ts'
+import { ConveyorNode, NODE_TYPES, findEdgesAndNodes, findLoopBackBottlenecks } from '../ConveyorNode.ts'
 import VueMermaidString from 'vue-mermaid-string'
 import { deflate } from 'pako'
 import { fromUint8Array } from 'js-base64'
@@ -54,7 +54,7 @@ const as_mermaid = computed(() => {
     output += `\t${node.id}${label}\n`
   }
 
-  const bottlenecks = findPotentialBottlenecks(...props.graph)
+  const bottlenecks = findLoopBackBottlenecks(props.graph)
   for (let edge of edgesAndNodes.edges) {
     if (props.bottleneck && bottlenecks.includes(edge)) {
       output += `\t${edge.src.id} == ${edge.carrying} ==> ${edge.dst.id}\n`
