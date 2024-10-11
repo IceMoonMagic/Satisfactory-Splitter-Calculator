@@ -180,6 +180,38 @@ export function findPotentialBottlenecks(...root_nodes: ConveyorNode[]): Conveyo
     return bottlenecks
 }
 
+/**
+ * Replaces a simple bottlenecking loopback with a more complex non-bottlenecking one
+ * See https://satisfactory.wiki.gg/wiki/Balancer#/media/File:Balancer_odd.png
+ * @param replace_link Link between loopback merger and next splitter
+ */
+export function replaceLoopBottleneck(replace_link: ConveyorLink): void {
+    const orig_merger = replace_link.src
+    const main_splitter = replace_link.dst
+    
+    // Make main path bypass original merger
+    const main_src_out = orig_merger.ins[0]
+    const main_src = main_src_out.src
+    main_src_out.remove_link()
+    orig_merger.outs[0].remove_link()
+    main_src.link_to(main_splitter, main_src_out.carrying)
+
+    // Prep for new intermediate mergers
+    const main_children = main_splitter.outs.map((link) => link.dst)
+    main_splitter.unlink_to_all()
+
+    // Merge appropriate main and loop for each child
+    const each_main_carry = main_splitter.split_into(main_children.length)
+    const each_loop_carry = orig_merger.split_into(main_children.length)
+    main_children.forEach((child) => {
+        const merger = new ConveyorNode()
+        main_splitter.link_to(merger, each_main_carry)
+        orig_merger.link_to(merger, each_loop_carry)
+        merger.link_to(child)
+    })
+
+}
+
 export interface SerializedGraph {
     edges: {src: number, dst: number, carrying: number}[],
     nodes: Map<number, number>
