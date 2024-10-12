@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ConveyorNode, NODE_TYPES, findEdgesAndNodes, findLoopBackBottlenecks } from '../ConveyorNode.ts'
+import { ConveyorNode, NODE_TYPES, findEdgesAndNodes, findLoopBackBottlenecks } from '../../ConveyorNode.ts'
 import { instance } from "@viz-js/viz"
 import GraphExport from './GraphExport.vue';
 

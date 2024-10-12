@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ConveyorNode, NODE_TYPES, findEdgesAndNodes, findLoopBackBottlenecks } from '../ConveyorNode.ts'
+import { ConveyorNode, NODE_TYPES, findEdgesAndNodes, findLoopBackBottlenecks } from '../../ConveyorNode.ts'
 import VueMermaidString from 'vue-mermaid-string'
 import { deflate } from 'pako'
 import { fromUint8Array } from 'js-base64'

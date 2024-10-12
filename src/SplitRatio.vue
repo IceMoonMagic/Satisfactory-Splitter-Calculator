@@ -2,9 +2,10 @@
 import Decimal from 'decimal.js'
 import { ref, computed } from 'vue'
 import { ConveyorNode, deserialize } from './ConveyorNode'
-import InputList from './components/InputList.vue'
-import GraphView from './components/GraphView.vue'
-import CalculateButton from './components/CalculateButton.vue'
+import InputList from './components/graphInputs/InputList.vue'
+import GraphView from './components/graphOutputs/GraphView.vue'
+import CalculateButton from './components/graphInputs/CalculateButton.vue'
+import BeltBottlenecks from './components/graphInputs/BeltBottlenecks.vue'
 
 const inputs = ref<Decimal[]>([new Decimal(60), new Decimal(-1)])
 const outputs = ref<Decimal[]>([30, -1, 15, 15, -1].map((e) => new Decimal(e)))

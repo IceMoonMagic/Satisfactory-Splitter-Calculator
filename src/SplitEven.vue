@@ -2,9 +2,9 @@
 import Decimal from 'decimal.js'
 import { ref } from 'vue'
 import { ConveyorNode, deserialize } from './ConveyorNode'
-import InputList from './components/InputList.vue'
-import GraphView from './components/GraphView.vue'
-import CalculateButton from './components/CalculateButton.vue'
+import InputList from './components/graphInputs/InputList.vue'
+import GraphView from './components/graphOutputs/GraphView.vue'
+import CalculateButton from './components/graphInputs/CalculateButton.vue'
 
 const inputs = ref<Decimal[]>([new Decimal(3), new Decimal(-1)])
 const graph = ref<ConveyorNode[]>(null)

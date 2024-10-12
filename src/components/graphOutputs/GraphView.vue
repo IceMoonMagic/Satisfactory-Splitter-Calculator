@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { ConveyorNode } from '../ConveyorNode.ts'
+import { ConveyorNode } from '../../ConveyorNode.ts'
 import GraphGraphviz from './GraphGraphviz.vue';
 import GraphMermaid from './GraphMermaid.vue'
 
