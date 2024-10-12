@@ -39,6 +39,16 @@ Similar to `Split Ratio`, will break the sources into `N` outputs (where `N` equ
 > [!NOTE]
 > This is a [load balancer](https://satisfactory.wiki.gg/wiki/Balancer#Load_balancer).
 
+### Loopback Bottlenecking
+When merging a loop back belt, the resulting belt may be carrying more than the original input.
+This can cause a problem if that belt is already at it's capacity.
+There is an alternate way to merge the loop back in this case, which is *slightly* more complex. 
+An example of the difference can be found on the 
+[Satisfactory Wiki](https://satisfactory.wiki.gg/wiki/Balancer#/media/File:Balancer_odd.png).
+
+To get the solver to use it, set the maximum available belt speed and the solver will replace loop back belts that surpass that maximum.
+To ensure the solver doesn't try fixing belts that it can't, the minimum belt speed is set to the largest Source / Target.
+
 ### Outputs
 The output for Split Ratio and Split Evenly can be displayed with either [Graphviz](https://www.graphviz.org/) or [Mermaid](mermaid.js.org). 
 Both provide a rendered SVG along with the associated input text.

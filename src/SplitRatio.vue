@@ -9,6 +9,7 @@ import BeltBottlenecks from './components/graphInputs/BeltBottlenecks.vue'
 
 const inputs = ref<Decimal[]>([new Decimal(60), new Decimal(-1)])
 const outputs = ref<Decimal[]>([30, -1, 15, 15, -1].map((e) => new Decimal(e)))
+const bottleneck_threshold = ref<Decimal>(undefined)
 const graph = ref<ConveyorNode[]>(null)
 const calculating = ref<boolean>(false)
 let worker = new Worker(new URL('./workers/splitRatio.ts', import.meta.url))
@@ -17,8 +18,8 @@ const BASE_CALC_TEXT = 'Calculating'
 const calc_text = ref(BASE_CALC_TEXT)
 
 function calculate() {
-  const sum_sources = Decimal.sum(...inputs.value.filter(e => e.gt(0)))
-  const sum_targets = Decimal.sum(...outputs.value.filter(e => e.gt(0)))
+  const sum_sources = Decimal.sum(...inputs.value.filter(e => e.gt(0)), 0)
+  const sum_targets = Decimal.sum(...outputs.value.filter(e => e.gt(0)), 0)
 
   if (sum_sources.eq(0) && sum_targets.eq(0)) {
     return
@@ -39,7 +40,8 @@ function calculate() {
     into: outputs.value.filter(e => e.gt(0)).map(e => e.toNumber()),
     from: inputs.value.filter(e => e.gt(0)).map(e => e.toNumber()),
     max_split: 3, max_merge: 3,
-    ratio_perms: try_perms.value
+    ratio_perms: try_perms.value,
+    bottleneck_threshold: bottleneck_threshold.value?.toNumber()
   }
   // console.debug(message)
   worker.postMessage(message)
@@ -76,6 +78,7 @@ const try_perms = ref(false)
       <InputList label="Sources" v-model="inputs" />
       <InputList label="Targets" v-model="outputs" />
     </div>
+    <BeltBottlenecks :inputs="[inputs, outputs]" v-model="bottleneck_threshold" />
     <div class="flex flex-wrap gap-2 justify-center">
       <span class="bg-overlay0 rounded-lg p-2">
         Calculate all ({{ num_perms }}) permutations and show simplest
