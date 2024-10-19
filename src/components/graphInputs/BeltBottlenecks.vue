@@ -80,7 +80,8 @@ function valid_custom(_e: Event) {
 <template>
   <div class="flex gap-2 flex-wrap sm:flex-nowrap">
     <label for="select_graph">Choose bottleneck max belt
-      <a href="https://github.com/IceMoonMagic/Satisfactory-Splitter-Calculator?tab=readme-ov-file#" target="_blank">
+      <a href="https://github.com/IceMoonMagic/Satisfactory-Splitter-Calculator?tab=readme-ov-file#loopback-bottlenecking"
+        target="_blank">
         <InformationCircleIcon class=" size-5 text-text inline" />
       </a>: </label>
     <select name="select_graph" v-model="belt_name" class="p-2 rounded-lg">
