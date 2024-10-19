@@ -101,6 +101,8 @@ The `ConveyorNode`s and `ConveyorLink`s that are used internally represent nodes
 ## *Possible* Future Additions
 - Re-Implement using smart splitters to simplify outputs (like in Python Version)
 - Splitter "Playground", allowing manual editing of graph
+- Prefer larger splits first (requires finding prime factors beforehand)
+- Calculate all unique multiset permutations rather *all* permutations
 
 ## Development
 This project uses Vue 3 + TypeScript + Vite and deploys to Github Pages.
@@ -108,20 +110,25 @@ This project uses Vue 3 + TypeScript + Vite and deploys to Github Pages.
 ### Dependancies
 - `@heroicons/vue`: Icons
 - `@viz-js/viz`: Graphviz Renderer
-- `decimal.js`: Percise math, avoiding issues with float
+- `decimal.js`: Precise math, avoiding issues with float
 - `js-base64`: Required for a step for sending to [Mermaid.live](https://mermaid.live)
 - `pako`: Required for a step for sending to [Mermaid.live](https://mermaid.live)
 - `vue`: The UI framework
-- `vue-mermaid-string`: Convient component for rendering Mermaid
+- `vue-mermaid-string`: Convenient component for rendering Mermaid
 - Dev
     - `@catppuccin/tailwindcss`: Catppuccin Colors
     - `@vitejs/plugin-vue`: Vite + Vue
     - `autoprefixer`: Something relating to Tailwind CSS
     - `postcss`: Something relating to Tailwind CSS
     - `tailwindcss`: Styling
-    - `typescript`: Typescipt
+    - `typescript`: TypeScript
     - `vite`: Bundler
     - `vue-tsc`: Vue + TS
+
+VS-Code Plugins:
+- [Vue - Official](https://marketplace.visualstudio.com/items?itemName=Vue.volar)
+- [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss)
+- [Prettier - Code formatter](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
 
 ## Contributing
 I don't really have experience collaborating through GitHub, but you are welcome to submit a pull request. Good luck though, I tried keeping it clean, but some places are better than others and documentation / comments still need some work. (I'll get to it eventually (probably)).
