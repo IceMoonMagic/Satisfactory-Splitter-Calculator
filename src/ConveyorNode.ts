@@ -390,7 +390,7 @@ export function smart_merge(
             return [curr_node]
         } else if (path.includes(curr_node)) {
             return []
-        } else if (curr_node.outs.length === 0) {
+        } else if (curr_node.outs.length === 0 || curr_node.ins.length === 0) {
             return null
         }
         let excess_children = new Array()
