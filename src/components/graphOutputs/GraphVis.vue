@@ -38,14 +38,8 @@ const options = {
     },
     addEdge: addEdge,
     editEdge: false,
-    deleteNode: (selected: Data, callback: Function) => {
-      console.log(selected, callback)
-      callback(selected)
-    },
-    deleteEdge: (selected: Data, callback: Function) => {
-      console.log(selected, callback)
-      callback(selected)
-    },
+    deleteNode: deleteNode,
+    deleteEdge: deleteEdge,
   },
 }
 
@@ -135,12 +129,12 @@ function addNode(ins: Decimal[], outs: Decimal[]) {
   )
   data.value.edges.add(
     inNodeIds.map((value) => {
-      return { from: value, to: newNodeId, color: "black" }
+      return { from: value, to: newNodeId, color: "red" }
     }),
   )
   data.value.edges.add(
     outNodeIds.map((value) => {
-      return { from: newNodeId, to: value, color: "black" }
+      return { from: newNodeId, to: value, color: "green" }
     }),
   )
 }
@@ -163,6 +157,69 @@ function addEdge(edgeData: Edge, callback: Function) {
   }
   callback(edgeData)
   data.value.nodes.remove([fromNode.id, toNode.id])
+}
+
+function deleteEdge(
+  selected: { nodes: Id[]; edges: Id[] },
+  callback: Function,
+) {
+  const edge = data.value.edges.get(selected.edges[0])
+  const fromNode = data.value.nodes.get(edge.from)
+  const toNode = data.value.nodes.get(edge.to)
+  if (fromNode.color == "red" || toNode.color == "green") {
+    callback({ nodes: [], edges: [] })
+    return
+  }
+  callback(selected)
+  data.value.nodes
+    .add({ label: edge.label, color: "green" })
+    .forEach((id) =>
+      data.value.edges.add({ from: fromNode.id, to: id, color: "green" }),
+    )
+  data.value.nodes
+    .add({ label: edge.label, color: "red" })
+    .forEach((id) =>
+      data.value.edges.add({ from: id, to: toNode.id, color: "red" }),
+    )
+}
+
+function deleteNode(
+  selected: { nodes: Id[]; edges: Id[] },
+  callback: Function,
+) {
+  const node = data.value.nodes.get(selected.nodes[0])
+  callback({ nodes: [], edges: [] }) // Has issues if not called, but also issues if called after updating
+  if (node.color == "red" || node.color == "green") {
+    return
+  }
+  network
+    .getConnectedEdges(node.id)
+    .map((id) => data.value.edges.get(id))
+    .filter((edge) => edge.color != "red" && edge.color != "green")
+    .forEach((edge) => {
+      if (edge.from == node.id) {
+        data.value.nodes
+          .add({ label: edge.label, color: "red" })
+          .forEach((id) =>
+            data.value.edges.add({ from: id, to: edge.to, color: "red" }),
+          )
+      } else {
+        data.value.nodes
+          .add({ label: edge.label, color: "green" })
+          .forEach((id) =>
+            data.value.edges.add({ from: edge.from, to: id, color: "green" }),
+          )
+      }
+    })
+  data.value.nodes.remove(
+    network
+      .getConnectedNodes(node.id)
+      .map((id: Id) => data.value.nodes.get(id))
+      .filter((node) => node.color == "red" || node.color == "green")
+      .map((node) => node.id)
+      .concat(selected.nodes),
+  )
+  // callback(selected)
 }
 </script>
 
