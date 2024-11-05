@@ -5,7 +5,7 @@ import {
   findEdgesAndNodes,
   NODE_TYPES,
 } from "../../ConveyorNode.ts"
-import { Data, DataSet, Network } from "vis-network/standalone"
+import { Data, DataSet, Node, Edge, Network } from "vis-network/standalone"
 import GraphVisAddModal from "./GraphVisAddModal.vue"
 import Decimal from "decimal.js"
 import { Id } from "vis-network/declarations/network/modules/components/edges"
@@ -36,7 +36,7 @@ const options = {
     addNode: (nodeData: object, callback: Function) => {
       addModelOpen.value = { cb: callback, nd: nodeData }
     },
-    addEdge: true,
+    addEdge: addEdge,
     editEdge: false,
     deleteNode: (selected: Data, callback: Function) => {
       console.log(selected, callback)
@@ -50,14 +50,14 @@ const options = {
 }
 
 const visDiv = useTemplateRef("visDiv")
-const data = computed<Data>(() => {
+const data = computed<{ nodes: DataSet<Node>; edges: DataSet<Edge> }>(() => {
   if (props.graph == null) {
     // if (visDiv.value != null) { visDiv.value.innerHTML = '' }
     return null
   }
   const src_data = findEdgesAndNodes(...props.graph)
   const nodes = src_data.nodes.map((node) => {
-    let n: any = { id: node.id, label: undefined, shape: undefined }
+    let n: Node = { id: node.id, label: undefined, shape: undefined }
     switch (node.node_type) {
       case NODE_TYPES.Splitter:
       case NODE_TYPES.Source_Splitter:
@@ -79,7 +79,7 @@ const data = computed<Data>(() => {
     }
     return n
   })
-  const edges = src_data.edges.map((edge) => {
+  const edges: Edge[] = src_data.edges.map((edge) => {
     return {
       from: edge.src.id,
       to: edge.dst.id,
@@ -108,7 +108,8 @@ onMounted(() => {
 const addModelOpen = ref<{ cb: Function; nd: object }>(undefined)
 
 function addNode(ins: Decimal[], outs: Decimal[]) {
-  let { nd: nodeData, cb: cb } = addModelOpen.value
+  // let { nd: nodeData, cb: cb } = addModelOpen.value
+  let nodeData = addModelOpen.value.nd as any
   if (ins.length + outs.length === 0) {
     return
   } else if (ins.length <= 1 && outs.length <= 1) {
@@ -142,6 +143,26 @@ function addNode(ins: Decimal[], outs: Decimal[]) {
       return { from: newNodeId, to: value, color: "black" }
     }),
   )
+}
+
+function addEdge(edgeData: Edge, callback: Function) {
+  const fromNode = data.value.nodes.get(edgeData.from)
+  const toNode = data.value.nodes.get(edgeData.to)
+
+  if (fromNode.color != "green" || toNode.color != "red") {
+    return
+  }
+  if (!new Decimal(fromNode.label).equals(toNode.label)) {
+    return
+  }
+
+  edgeData = {
+    from: network.getConnectedNodes(fromNode.id)[0],
+    to: network.getConnectedNodes(toNode.id)[0],
+    label: fromNode.label,
+  }
+  callback(edgeData)
+  data.value.nodes.remove([fromNode.id, toNode.id])
 }
 </script>
 
