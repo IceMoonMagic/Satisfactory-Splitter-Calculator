@@ -2103,6 +2103,11 @@ uvu@^0.5.0:
     kleur "^4.0.3"
     sade "^1.7.3"
 
+vis-data@^7.1.9:
+  version "7.1.9"
+  resolved "https://registry.yarnpkg.com/vis-data/-/vis-data-7.1.9.tgz#ea0504df6fcbaae175173f4bbb05a960ce6c8891"
+  integrity sha512-COQsxlVrmcRIbZMMTYwD+C2bxYCFDNQ2EHESklPiInbD/Pk3JZ6qNL84Bp9wWjYjAzXfSlsNaFtRk+hO9yBPWA==
+
 vis-network@^9.1.9:
   version "9.1.9"
   resolved "https://registry.yarnpkg.com/vis-network/-/vis-network-9.1.9.tgz#8159b34e7c1570150fcc9296213d2b88ed169394"
