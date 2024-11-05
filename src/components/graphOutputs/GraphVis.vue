@@ -1,40 +1,71 @@
 <script setup lang="ts">
+import Decimal from "decimal.js"
+import { Id } from "vis-network/declarations/network/modules/components/edges"
+import {
+  Color,
+  DataSet,
+  Edge,
+  Network,
+  Node,
+  Options,
+} from "vis-network/standalone"
 import { computed, onMounted, ref, useTemplateRef, watch } from "vue"
 import {
   ConveyorNode,
   findEdgesAndNodes,
   NODE_TYPES,
 } from "../../ConveyorNode.ts"
-import { Data, DataSet, Node, Edge, Network } from "vis-network/standalone"
 import GraphVisAddModal from "./GraphVisAddModal.vue"
-import Decimal from "decimal.js"
-import { Id } from "vis-network/declarations/network/modules/components/edges"
 
+const GREEN: Color = {
+  border: "#40a02b",
+  background: "#a6e3a1",
+  highlight: {
+    border: "#40a02b",
+    background: "#a6e3a1",
+  },
+}
+const GREEN_EDGE = {
+  color: GREEN.border,
+  highlight: GREEN.border,
+}
+const RED: Color = {
+  border: "#e64553",
+  background: "#eba0ac",
+  highlight: {
+    border: "#e64553",
+    background: "#eba0ac",
+  },
+}
+const RED_EDGE = {
+  color: RED.border,
+  highlight: RED.border,
+}
 let network: Network = null
 const props = defineProps({
   graph: Array<ConveyorNode>,
 })
 
-const options = {
+const options: Options = {
   interaction: {
     navigationButtons: true,
   },
   layout: {
     randomSeed: 2,
-    hierarchical: { enabled: false },
+    hierarchical: false,
   },
   edges: {
     arrows: "to",
-    smooth: { enabled: false },
+    smooth: false, // FixMe: Multiple identical edges look like only one
   },
   nodes: {
     shape: "circle",
   },
-  physics: { enabled: false },
+  physics: false,
   manipulation: {
-    enabled: true,
-    addNode: (nodeData: object, callback: Function) => {
-      addModelOpen.value = { cb: callback, nd: nodeData }
+    initiallyActive: true,
+    addNode: (nodeData: Node, _callback: Function) => {
+      addNodeData.value = nodeData
     },
     addEdge: addEdge,
     editEdge: false,
@@ -42,6 +73,14 @@ const options = {
     deleteEdge: deleteEdge,
   },
 }
+const hierarchical = ref(options.layout.hierarchical)
+watch(hierarchical, (updated) => {
+  options.layout.hierarchical = updated
+  network.setOptions(options)
+  // Needs to be done separately for some reason
+  options.physics = false
+  network.setOptions(options)
+})
 
 const visDiv = useTemplateRef("visDiv")
 const data = computed<{ nodes: DataSet<Node>; edges: DataSet<Edge> }>(() => {
@@ -97,13 +136,43 @@ onMounted(() => {
     // @ts-ignore
     network.setData(data.value)
   }
+  addNode(
+    [new Decimal(3)],
+    [1, 1, 1].map((e) => new Decimal(e)),
+  )
 })
 
-const addModelOpen = ref<{ cb: Function; nd: object }>(undefined)
+const addNodeData = ref<Node>(undefined)
+
+function addIns(to: Id, ...ins: (Decimal | string)[]) {
+  const addedIds = data.value.nodes.add(
+    ins.map((value) => {
+      return { label: value.toString(), color: RED }
+    }),
+  )
+  data.value.edges.add(
+    addedIds.map((id) => {
+      return { from: id, to: to, color: RED_EDGE }
+    }),
+  )
+}
+
+function addOuts(from: Id, ...outs: (Decimal | string)[]) {
+  const addedIds = data.value.nodes.add(
+    outs.map((value) => {
+      return { label: value.toString(), color: GREEN }
+    }),
+  )
+  data.value.edges.add(
+    addedIds.map((id) => {
+      return { from: from, to: id, color: GREEN_EDGE }
+    }),
+  )
+}
 
 function addNode(ins: Decimal[], outs: Decimal[]) {
   // let { nd: nodeData, cb: cb } = addModelOpen.value
-  let nodeData = addModelOpen.value.nd as any
+  let nodeData = (addNodeData.value || { x: 0, y: 0 }) as Node
   if (ins.length + outs.length === 0) {
     return
   } else if (ins.length <= 1 && outs.length <= 1) {
@@ -117,33 +186,15 @@ function addNode(ins: Decimal[], outs: Decimal[]) {
     nodeData.shape = outs.length > 1 ? "diamond" : "square"
   }
   const newNodeId: Id = data.value.nodes.add([nodeData])[0]
-  const inNodeIds: Id[] = data.value.nodes.add(
-    ins.map((value) => {
-      return { label: value.toString(), color: "red" }
-    }),
-  )
-  const outNodeIds: Id[] = data.value.nodes.add(
-    outs.map((value) => {
-      return { label: value.toString(), color: "green" }
-    }),
-  )
-  data.value.edges.add(
-    inNodeIds.map((value) => {
-      return { from: value, to: newNodeId, color: "red" }
-    }),
-  )
-  data.value.edges.add(
-    outNodeIds.map((value) => {
-      return { from: newNodeId, to: value, color: "green" }
-    }),
-  )
+  addIns(newNodeId, ...ins)
+  addOuts(newNodeId, ...outs)
 }
 
 function addEdge(edgeData: Edge, callback: Function) {
   const fromNode = data.value.nodes.get(edgeData.from)
   const toNode = data.value.nodes.get(edgeData.to)
 
-  if (fromNode.color != "green" || toNode.color != "red") {
+  if (fromNode.color != GREEN || toNode.color != RED) {
     return
   }
   if (!new Decimal(fromNode.label).equals(toNode.label)) {
@@ -151,8 +202,8 @@ function addEdge(edgeData: Edge, callback: Function) {
   }
 
   edgeData = {
-    from: network.getConnectedNodes(fromNode.id)[0],
-    to: network.getConnectedNodes(toNode.id)[0],
+    from: network.getConnectedNodes(fromNode.id)[0] as Id,
+    to: network.getConnectedNodes(toNode.id)[0] as Id,
     label: fromNode.label,
   }
   callback(edgeData)
@@ -166,21 +217,13 @@ function deleteEdge(
   const edge = data.value.edges.get(selected.edges[0])
   const fromNode = data.value.nodes.get(edge.from)
   const toNode = data.value.nodes.get(edge.to)
-  if (fromNode.color == "red" || toNode.color == "green") {
+  if (fromNode.color == RED || toNode.color == GREEN) {
     callback({ nodes: [], edges: [] })
     return
   }
   callback(selected)
-  data.value.nodes
-    .add({ label: edge.label, color: "green" })
-    .forEach((id) =>
-      data.value.edges.add({ from: fromNode.id, to: id, color: "green" }),
-    )
-  data.value.nodes
-    .add({ label: edge.label, color: "red" })
-    .forEach((id) =>
-      data.value.edges.add({ from: id, to: toNode.id, color: "red" }),
-    )
+  addIns(toNode.id, edge.label)
+  addOuts(fromNode.id, edge.label)
 }
 
 function deleteNode(
@@ -189,33 +232,23 @@ function deleteNode(
 ) {
   const node = data.value.nodes.get(selected.nodes[0])
   callback({ nodes: [], edges: [] }) // Has issues if not called, but also issues if called after updating
-  if (node.color == "red" || node.color == "green") {
+  if (node.color == RED || node.color == GREEN) {
     return
   }
   network
     .getConnectedEdges(node.id)
     .map((id) => data.value.edges.get(id))
-    .filter((edge) => edge.color != "red" && edge.color != "green")
-    .forEach((edge) => {
-      if (edge.from == node.id) {
-        data.value.nodes
-          .add({ label: edge.label, color: "red" })
-          .forEach((id) =>
-            data.value.edges.add({ from: id, to: edge.to, color: "red" }),
-          )
-      } else {
-        data.value.nodes
-          .add({ label: edge.label, color: "green" })
-          .forEach((id) =>
-            data.value.edges.add({ from: edge.from, to: id, color: "green" }),
-          )
-      }
-    })
+    .filter((edge) => edge.color != RED_EDGE && edge.color != GREEN_EDGE)
+    .forEach((edge) =>
+      edge.from == node.id
+        ? addIns(edge.to, edge.label)
+        : addOuts(edge.from, edge.label),
+    )
   data.value.nodes.remove(
     network
       .getConnectedNodes(node.id)
-      .map((id: Id) => data.value.nodes.get(id))
-      .filter((node) => node.color == "red" || node.color == "green")
+      .map((id) => data.value.nodes.get(id as Id))
+      .filter((node) => node.color == RED || node.color == GREEN)
       .map((node) => node.id)
       .concat(selected.nodes),
   )
@@ -228,10 +261,16 @@ function deleteNode(
   <!-- <GraphExport :text="JSON.stringify(as_vis)" :svg="graphviz_svg" :link="link" mime="text/vnd.graphviz"
     filename="SplitResult.dot" /> -->
   <GraphVisAddModal
-    v-if="addModelOpen !== undefined"
-    @close="addModelOpen = undefined"
+    v-if="addNodeData !== undefined"
+    @close="addNodeData = undefined"
     :addNode="addNode"
   />
+  <button @click="network.stabilize()">Stabilize</button>
+  <span
+    ><input type="checkbox" v-model="hierarchical" /><label
+      >Hierarchical</label
+    ></span
+  >
   <div ref="visDiv" class="latte h-96 bg-base text-text" />
   <!-- <textarea readonly class="font-mono rounded-lg p-2 w-full">{{ JSON.stringify(as_vis) }}</textarea> -->
 </template>
