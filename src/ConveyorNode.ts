@@ -166,6 +166,67 @@ export function findEdgesAndNodes (...root_nodes: ConveyorNode[]) {
     return {edges: edges, nodes: nodes}
 }
 
+/**
+ * Find all edges that *could* be a bottleneck (based on carrying vs belt speeds).
+ * Only use on split graphs, do not merge multiple roots!
+ * This *should* only occur on loopback nodes.
+ * 
+ * If threshold is provided, assumes all sources and targets are within that threshold.
+ * Otherwise, assumes all of a root's children are smaller than it (excluding loopbacks).
+ * @param root_nodes Nodes at the top of graphs to traverse
+ * @param threshold Maxiumum allowable link.carrying
+ * @returns 
+ */
+export function findLoopBackBottlenecks(root_nodes: ConveyorNode[], threshold?: number | Decimal): ConveyorLink[] {
+    const bottlenecks: ConveyorLink[] = new Array()
+    const seen_nodes: ConveyorNode[] = new Array()
+    function _findBottlenecks(curr_node: ConveyorNode, threshold_: number | Decimal) {
+        if (!seen_nodes.includes(curr_node)) { 
+            seen_nodes.push(curr_node)
+            curr_node.outs.forEach((link) => {if (link.carrying.gt(threshold_)) bottlenecks.push(link)})
+            curr_node.outs.forEach((link) => _findBottlenecks(link.dst, threshold_))
+        }
+    }
+    root_nodes.forEach((node) => _findBottlenecks(node, threshold ?? node.sum_outs))
+    console.log(bottlenecks)
+    return bottlenecks
+}
+
+/**
+ * Replaces a simple bottlenecking loopback with a more complex non-bottlenecking one.
+ * 
+ * Assumes the specific layout of `src -> merge; loop -> merge; merge -(replace_link)-> split; split -> (N children)`
+ * 
+ * See https://satisfactory.wiki.gg/wiki/Balancer#/media/File:Balancer_odd.png
+ * @param replace_link Link between loopback merger and next splitter
+ */
+export function replaceLoopBottleneck(replace_link: ConveyorLink): void {
+    const orig_merger = replace_link.src
+    const main_splitter = replace_link.dst
+    
+    // Make main path bypass original merger
+    const main_src_out = orig_merger.ins[0]
+    const main_src = main_src_out.src
+    main_src_out.remove_link()
+    orig_merger.outs[0].remove_link()
+    main_src.link_to(main_splitter, main_src_out.carrying)
+
+    // Prep for new intermediate mergers
+    const main_children = main_splitter.outs.map((link) => link.dst)
+    main_splitter.unlink_to_all()
+
+    // Merge appropriate main and loop for each child
+    const each_main_carry = main_splitter.split_into(main_children.length)
+    const each_loop_carry = orig_merger.split_into(main_children.length)
+    main_children.forEach((child) => {
+        const merger = new ConveyorNode()
+        main_splitter.link_to(merger, each_main_carry)
+        orig_merger.link_to(merger, each_loop_carry)
+        merger.link_to(child)
+    })
+
+}
+
 export interface SerializedGraph {
     edges: {src: number, dst: number, carrying: number}[],
     nodes: Map<number, number>
@@ -329,7 +390,7 @@ export function smart_merge(
             return [curr_node]
         } else if (path.includes(curr_node)) {
             return []
-        } else if (curr_node.outs.length === 0) {
+        } else if (curr_node.outs.length === 0 || curr_node.ins.length === 0) {
             return null
         }
         let excess_children = new Array()

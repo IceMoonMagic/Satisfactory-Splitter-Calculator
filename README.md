@@ -39,6 +39,16 @@ Similar to `Split Ratio`, will break the sources into `N` outputs (where `N` equ
 > [!NOTE]
 > This is a [load balancer](https://satisfactory.wiki.gg/wiki/Balancer#Load_balancer).
 
+### Loopback Bottlenecking
+When merging a loop back belt, the resulting belt may be carrying more than the original input.
+This can cause a problem if that belt is already at it's capacity.
+There is an alternate way to merge the loop back in this case, which is *slightly* more complex. 
+An example of the difference can be found on the 
+[Satisfactory Wiki](https://satisfactory.wiki.gg/wiki/Balancer#/media/File:Balancer_odd.png).
+
+To get the solver to use it, set the maximum available belt speed and the solver will replace loop back belts that surpass that maximum.
+To ensure the solver doesn't try fixing belts that it can't, the minimum belt speed is set to the largest Source / Target.
+
 ### Outputs
 The output for Split Ratio and Split Evenly can be displayed with either [Graphviz](https://www.graphviz.org/) or [Mermaid](mermaid.js.org). 
 Both provide a rendered SVG along with the associated input text.
@@ -91,6 +101,8 @@ The `ConveyorNode`s and `ConveyorLink`s that are used internally represent nodes
 ## *Possible* Future Additions
 - Re-Implement using smart splitters to simplify outputs (like in Python Version)
 - Splitter "Playground", allowing manual editing of graph
+- Prefer larger splits first (requires finding prime factors beforehand)
+- Calculate all unique multiset permutations rather *all* permutations
 
 ## Development
 This project uses Vue 3 + TypeScript + Vite and deploys to Github Pages.
@@ -98,20 +110,25 @@ This project uses Vue 3 + TypeScript + Vite and deploys to Github Pages.
 ### Dependancies
 - `@heroicons/vue`: Icons
 - `@viz-js/viz`: Graphviz Renderer
-- `decimal.js`: Percise math, avoiding issues with float
+- `decimal.js`: Precise math, avoiding issues with float
 - `js-base64`: Required for a step for sending to [Mermaid.live](https://mermaid.live)
 - `pako`: Required for a step for sending to [Mermaid.live](https://mermaid.live)
 - `vue`: The UI framework
-- `vue-mermaid-string`: Convient component for rendering Mermaid
+- `vue-mermaid-string`: Convenient component for rendering Mermaid
 - Dev
     - `@catppuccin/tailwindcss`: Catppuccin Colors
     - `@vitejs/plugin-vue`: Vite + Vue
     - `autoprefixer`: Something relating to Tailwind CSS
     - `postcss`: Something relating to Tailwind CSS
     - `tailwindcss`: Styling
-    - `typescript`: Typescipt
+    - `typescript`: TypeScript
     - `vite`: Bundler
     - `vue-tsc`: Vue + TS
+
+VS-Code Plugins:
+- [Vue - Official](https://marketplace.visualstudio.com/items?itemName=Vue.volar)
+- [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss)
+- [Prettier - Code formatter](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
 
 ## Contributing
 I don't really have experience collaborating through GitHub, but you are welcome to submit a pull request. Good luck though, I tried keeping it clean, but some places are better than others and documentation / comments still need some work. (I'll get to it eventually (probably)).
