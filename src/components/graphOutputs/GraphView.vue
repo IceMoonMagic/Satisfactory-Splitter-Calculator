@@ -1,7 +1,8 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import { defineAsyncComponent, ref } from "vue"
 import { ConveyorNode } from "../../ConveyorNode.ts"
 import ToggleButton from "../ToggleButton.vue"
+
 const GraphGraphviz = defineAsyncComponent(() => import("./GraphGraphviz.vue"))
 const GraphMermaid = defineAsyncComponent(() => import("./GraphMermaid.vue"))
 
@@ -15,7 +16,7 @@ const highlight_bottleneck = ref(false)
 
 <template>
   <label for="select_graph">Choose Graph Renderer: </label>
-  <select name="select_graph" v-model="renderer" class="rounded-lg p-2">
+  <select class="rounded-lg p-2" name="select_graph" v-model="renderer">
     <option>GraphViz</option>
     <option>Mermaid</option>
   </select>
@@ -24,13 +25,13 @@ const highlight_bottleneck = ref(false)
   </ToggleButton>
   <div v-if="graph != undefined">
     <GraphGraphviz
-      :graph="props.graph"
       :bottleneck="highlight_bottleneck"
+      :graph="props.graph"
       v-if="renderer === 'GraphViz'"
     />
     <GraphMermaid
-      :graph="props.graph"
       :bottleneck="highlight_bottleneck"
+      :graph="props.graph"
       v-else-if="renderer === 'Mermaid'"
     />
   </div>

@@ -1,7 +1,7 @@
-<script setup lang="ts">
-import InputList from "../graphInputs/InputList.vue"
-import { ref } from "vue"
+<script lang="ts" setup>
 import Decimal from "decimal.js"
+import { ref } from "vue"
+import InputList from "../graphInputs/InputList.vue"
 
 const props = defineProps({
   callback: Function,
@@ -32,7 +32,7 @@ const values = ref([new Decimal(0), new Decimal(-1)])
     class="fixed inset-0 z-50 flex items-center justify-center bg-crust bg-opacity-75"
   >
     <dialog
-      class="modal-content flex flex-col gap-2 rounded-xl bg-overlay0 p-2"
+      class="modal-content flex flex-col gap-2 rounded-lg bg-overlay0 p-2"
     >
       <span class="flex justify-center gap-2">
         <label>Setting Inputs</label>
@@ -43,11 +43,11 @@ const values = ref([new Decimal(0), new Decimal(-1)])
         v-bind:label="checkbox ? 'Inputs' : 'Outputs'"
       />
       <span class="flex justify-end gap-2">
-        <button class="latte bg-red" @click="$emit('close')">Cancel</button>
+        <button @click="$emit('close')" class="latte bg-red">Cancel</button>
         <button
-          class="latte bg-green"
-          @click="addNode"
           :disabled="values.filter((e) => e.gt(0)).length == 0"
+          @click="addNode"
+          class="latte bg-green"
         >
           Accept
         </button>

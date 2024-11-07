@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import { fromUint8Array } from "js-base64"
 import { deflate } from "pako"
 import { computed, ref } from "vue"
@@ -103,25 +103,25 @@ const svg = ref<SVGSVGElement>(null)
 <template>
   <!-- Use https://prismjs.com/ for highlighting  -->
   <GraphExport
-    :text="as_mermaid"
-    :svg="svg"
     :link="link"
-    mime="application/vnd.mermaid"
+    :svg="svg"
+    :text="as_mermaid"
     filename="SplitResult.mmd"
+    mime="application/vnd.mermaid"
   >
     <ToggleButton v-model="useElk">Mermaid Elk Renderer</ToggleButton>
   </GraphExport>
   <VueMermaidString
-    ref="svg"
     :value="as_mermaid"
     class="max-w-fill h-fit content-center rounded-lg bg-white [&>svg]:m-auto"
+    ref="svg"
   />
   <details>
     <summary>Text Output</summary>
     <textarea
-      readonly
       :rows="as_mermaid.split(/\n/).length"
       class="w-full whitespace-pre rounded-lg p-2 font-mono"
+      readonly
       >{{ as_mermaid }}</textarea
     >
   </details>

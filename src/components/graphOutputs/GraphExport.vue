@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import { InformationCircleIcon } from "@heroicons/vue/16/solid"
 import { ref } from "vue"
 
@@ -27,11 +27,11 @@ function click_link() {
 <template>
   <div class="m-2 flex justify-center gap-2">
     <slot></slot>
-    <a ref="downloader" hidden />
+    <a hidden ref="downloader" />
     <button
-      @click="download_text"
       :disabled="text === ''"
-      class="latte bg-blue text-base"
+      @click="download_text"
+      class="colored bg-blue"
     >
       Download Text
     </button>
@@ -44,11 +44,11 @@ function click_link() {
     >Download PNG
     </button> -->
     <a
+      :class="text === '' ? 'pointer-events-none' : ''"
       :href="props.link"
       target="_blank"
-      :class="text === '' ? 'pointer-events-none' : ''"
     >
-      <button :disabled="text === ''" class="latte bg-blue text-base">
+      <button :disabled="text === ''" class="colored bg-blue">
         Send to External Editor
       </button>
     </a>

@@ -1,12 +1,12 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import Decimal from "decimal.js"
-import { ref, computed } from "vue"
-import ToggleButton from "./components/ToggleButton.vue"
-import { ConveyorNode, deserialize } from "./ConveyorNode"
+import { computed, ref } from "vue"
+import BeltBottlenecks from "./components/graphInputs/BeltBottlenecks.vue"
+import CalculateButton from "./components/graphInputs/CalculateButton.vue"
 import InputList from "./components/graphInputs/InputList.vue"
 import GraphView from "./components/graphOutputs/GraphView.vue"
-import CalculateButton from "./components/graphInputs/CalculateButton.vue"
-import BeltBottlenecks from "./components/graphInputs/BeltBottlenecks.vue"
+import ToggleButton from "./components/ToggleButton.vue"
+import { ConveyorNode, deserialize } from "./ConveyorNode"
 
 const inputs = ref<Decimal[]>([new Decimal(60), new Decimal(-1)])
 const outputs = ref<Decimal[]>([30, -1, 15, 15, -1].map((e) => new Decimal(e)))
@@ -76,11 +76,15 @@ const num_perms = computed(
       .reduce<number>((factorial: number, _, i) => factorial * (i + 1), 1),
 )
 const try_perms = ref(false)
+
+// graph.value = [new ConveyorNode(new Decimal(5))]
+// graph.value.push(new ConveyorNode(new Decimal(5)))
+// graph.value[0].link_to(graph.value[1])
 </script>
 
 <template>
   <div class="space-y-2">
-    <div class="flex flex-wrap gap-2 sm:flex-nowrap">
+    <div class="flex flex-wrap sm:flex-nowrap">
       <InputList label="Sources" v-model="inputs" />
       <InputList label="Targets" v-model="outputs" />
     </div>
@@ -94,8 +98,8 @@ const try_perms = ref(false)
     <CalculateButton
       :working="calculating"
       :working_text="calc_text"
-      @start="calculate()"
       @abort="abort()"
+      @start="calculate()"
     />
     <GraphView :graph="graph as ConveyorNode[]" />
   </div>

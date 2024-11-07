@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import Decimal from "decimal.js"
 import { Id } from "vis-network/declarations/network/modules/components/edges"
 import {
@@ -261,9 +261,9 @@ function deleteNode(
   <!-- <GraphExport :text="JSON.stringify(as_vis)" :svg="graphviz_svg" :link="link" mime="text/vnd.graphviz"
     filename="SplitResult.dot" /> -->
   <GraphVisAddModal
-    v-if="addNodeData !== undefined"
-    @close="addNodeData = undefined"
     :addNode="addNode"
+    @close="addNodeData = undefined"
+    v-if="addNodeData !== undefined"
   />
   <button @click="network.stabilize()">Stabilize</button>
   <span
@@ -271,6 +271,6 @@ function deleteNode(
       >Hierarchical</label
     ></span
   >
-  <div ref="visDiv" class="latte h-96 bg-base text-text" />
+  <div class="latte h-96 bg-base text-text" ref="visDiv" />
   <!-- <textarea readonly class="font-mono rounded-lg p-2 w-full">{{ JSON.stringify(as_vis) }}</textarea> -->
 </template>
