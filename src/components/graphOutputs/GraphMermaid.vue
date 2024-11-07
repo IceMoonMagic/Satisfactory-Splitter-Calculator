@@ -9,6 +9,7 @@ import {
   findLoopBackBottlenecks,
   NODE_TYPES,
 } from "../../ConveyorNode.ts"
+import ToggleButton from "../ToggleButton.vue"
 import GraphExport from "./GraphExport.vue"
 
 const props = defineProps({
@@ -108,8 +109,8 @@ const svg = ref<SVGSVGElement>(null)
     mime="application/vnd.mermaid"
     filename="SplitResult.mmd"
   >
-    <button @click="useElk = !useElk">Elk Renderer</button></GraphExport
-  >
+    <ToggleButton v-model="useElk">Mermaid Elk Renderer</ToggleButton>
+  </GraphExport>
   <VueMermaidString
     ref="svg"
     :value="as_mermaid"
