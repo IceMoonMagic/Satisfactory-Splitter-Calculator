@@ -61,8 +61,7 @@ function worker_on_message(e: MessageEvent) {
     calc_text.value = `${BASE_CALC_TEXT} ${e.data}`
     return
   }
-  const e_graph = deserialize(e.data)
-  graph.value = e_graph
+  graph.value = deserialize(e.data)
   calculating.value = false
 }
 

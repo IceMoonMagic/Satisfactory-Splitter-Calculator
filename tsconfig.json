@@ -14,9 +14,11 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "preserve"
+    "jsx": "preserve",
 
     /* Linting */
+    "noImplicitAny": false,
+    "allowJs": true
     // "strict": true,
     // "noUnusedLocals": true,
     // "noUnusedParameters": true,

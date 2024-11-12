@@ -36,8 +36,7 @@ function abort() {
 }
 
 function worker_on_message(e: MessageEvent) {
-  const e_graph = deserialize(e.data)
-  graph.value = e_graph
+  graph.value = deserialize(e.data)
   calculating.value = false
 }
 </script>

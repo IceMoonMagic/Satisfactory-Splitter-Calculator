@@ -21,7 +21,9 @@
   },
   "devDependencies": {
     "@catppuccin/tailwindcss": "^0.1.6",
+    "@types/pako": "^2.0.3",
     "@vitejs/plugin-vue": "^5.0.4",
+    "@vue/language-server": "^2.1.10",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
     "prettier": "^3.3.3",
