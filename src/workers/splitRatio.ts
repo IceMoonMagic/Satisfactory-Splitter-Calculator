@@ -1,56 +1,79 @@
 import { Decimal } from "decimal.js"
-import { ConveyorNode, even_split, serialize, ratio, smart_merge, clean_up_graph, findEdgesAndNodes, findLoopBackBottlenecks, replaceLoopBottleneck } from "../ConveyorNode"
+import {
+  countMultisetPermutations,
+  multisetPermutations,
+  ratio,
+} from "../math.ts"
+import {
+  ConveyorNode,
+  even_split,
+  serialize,
+  smart_merge,
+  clean_up_graph,
+  findEdgesAndNodes,
+  findLoopBackBottlenecks,
+  replaceLoopBottleneck,
+} from "../ConveyorNode"
 
 onmessage = (e) => {
-  const into = e.data.into
-  const from = e.data.from
-  const max_split = e.data.max_split
-  const max_merge = e.data.max_merge
-  const bottleneck_threshold = e.data.bottleneck_threshold
+  const into: Decimal[] = e.data.into.map((v: number) => new Decimal(v))
+  const from: Decimal[] = e.data.from.map((v: number) => new Decimal(v))
+  const max_split: number = e.data.max_split
+  const max_merge: number = e.data.max_merge
+  const bottleneck_threshold: number = e.data.bottleneck_threshold
   let graph: ConveyorNode[]
   if (e.data.ratio_perms !== true) {
     graph = main(into, from, max_split, max_merge, bottleneck_threshold)
   } else {
-    graph = main_find_best(into, from, max_split, max_merge, true, bottleneck_threshold)
+    graph = main_find_best(
+      into,
+      from,
+      max_split,
+      max_merge,
+      bottleneck_threshold,
+    )
   }
-  
+
   const keys = serialize(...graph)
   postMessage(keys)
 }
 
+/**
+ * Find how to split / merge `from` into `into`
+ * @param into - List of Targets
+ * @param from - List of Source
+ * @param max_split - Maximum number of belts that a single splitter can split into
+ * @param max_merge - Maximum number of belts that a single merger can merge from
+ * @param bottleneck_threshold - Threshold to use alternate loop-back belt layout
+ */
 function main(
-  into: Array<number | Decimal>,
-  from: Array<number | Decimal> = undefined,
+  into: Decimal[],
+  from: Decimal[] = undefined,
   max_split: number = 3,
   max_merge: number = 3,
   bottleneck_threshold?: number | Decimal,
 ): ConveyorNode[] {
   if (into.length === 0) {
-    throw new Error('No inputs provided.')
-  } else if (
-    into.some(i => i instanceof Decimal ? i.lte(0) : i <= 0)
-  ) {
-    throw new Error('Inputs must be greater than 0')
+    throw new Error("No inputs provided.")
+  } else if (into.some((i) => (i instanceof Decimal ? i.lte(0) : i <= 0))) {
+    throw new Error("Inputs must be greater than 0")
   }
-  
-  const targets: Decimal[] = new Array(into.length)
-  into.forEach((n, i) => targets[i] = (new Decimal(n)))
+
+  const targets: Decimal[] = into
   const targets_total = Decimal.sum(...targets)
-  
-  from = from || [targets_total]
-  const sources: Decimal[] = new Array(from.length)
-  from.forEach((n, i) => sources[i] = (new Decimal(n)))
+
+  const sources: Decimal[] = from || [targets_total]
   const sources_total = Decimal.sum(...sources)
-  
+
+  if (!sources_total.eq(targets_total)) {
+    throw new Error("total_sources != total_targets")
+  }
+
   const ratio_targets = ratio(targets.concat(sources))
   const ratio_sources = ratio_targets.splice(targets.length)
-  
-  if (!sources_total.eq(targets_total)) {
-    throw new Error('total_souces != total_targets')
-  }
-  
-  const root_nodes: ConveyorNode[] = new Array()
-  let split_nodes: ConveyorNode[] = new Array()
+
+  const root_nodes: ConveyorNode[] = []
+  let split_nodes: ConveyorNode[] = []
   for (let i in sources) {
     const root_node = new ConveyorNode(sources[i])
     root_nodes.push(root_node)
@@ -60,13 +83,14 @@ function main(
       split_nodes = split_nodes.concat(src_node)
     } else {
       split_nodes = split_nodes.concat(
-        even_split(src_node, ratio_sources[i].toNumber(), max_split)
+        even_split(src_node, ratio_sources[i].toNumber(), max_split),
       )
     }
-  } 
+  }
   if (bottleneck_threshold != undefined) {
-    findLoopBackBottlenecks(root_nodes, bottleneck_threshold)
-    .forEach((edge) => replaceLoopBottleneck(edge))
+    findLoopBackBottlenecks(root_nodes, bottleneck_threshold).forEach((edge) =>
+      replaceLoopBottleneck(edge),
+    )
   }
   smart_merge(split_nodes, ratio_targets, max_merge)
   // return root_nodes
@@ -74,45 +98,41 @@ function main(
   return root_nodes
 }
 
+/**
+ * Solve every permutation of `into` and `from` and returns the best
+ * @param into - List of Targets
+ * @param from - List of Source
+ * @param max_split - Maximum number of belts that a single splitter can split into
+ * @param max_merge - Maximum number of belts that a single merger can merge from
+ * @param bottleneck_threshold - Threshold to use alternate loop-back belt layout
+ */
 function main_find_best(
-  into: Array<number | Decimal>,
-  from: Array<number | Decimal> = undefined,
+  into: Decimal[],
+  from: Decimal[] = undefined,
   max_split: number = 3,
   max_merge: number = 3,
-  post_messages: boolean = false,
   bottleneck_threshold?: number | Decimal,
 ): ConveyorNode[] {
-  function* permutations(elements: any[]) {
-    if (elements === undefined) {
-      yield undefined
-      return
-    }
-    if (elements.length <= 1) {
-      yield elements
-      return
-    }
-    for (let perm of permutations(elements.slice(1))) {
-      for (let i in elements) {
-        yield perm.slice(0, i)
-        .concat(elements.slice(0, 1))
-        .concat(perm.slice(i))
-      }
-    }
-  }
-
-  const num_perms = (
-    into.reduce<number>((factorial: number, _, i) => factorial * (i+1), 1)
-    * from.reduce<number>((factorial: number, _, i) => factorial * (i+1) , 1)
+  const num_perms = countMultisetPermutations(into).mul(
+    countMultisetPermutations(from),
   )
-  
+
+  /** Root nodes of best graph */
   let best_start: ConveyorNode[]
-  let best_lines: number
+  /** Sum of number of nodes and number of edges on best graph*/
+  let best_lines: number = undefined
   let counter = 1
-  
-  for (let into_perm of permutations(into)) {
-    for (let from_perm of permutations(from)) {
-      if (post_messages) {postMessage(`(${counter++}/${num_perms})`)}
-      const root_nodes = main(into_perm, from_perm, max_split, max_merge, bottleneck_threshold)
+
+  for (let into_perm of multisetPermutations(into)) {
+    for (let from_perm of multisetPermutations(from)) {
+      postMessage(`(${counter++}/${num_perms})`)
+      const root_nodes = main(
+        into_perm,
+        from_perm,
+        max_split,
+        max_merge,
+        bottleneck_threshold,
+      )
       const edgesAndNodes = findEdgesAndNodes(...root_nodes)
       const lines = edgesAndNodes.edges.length + edgesAndNodes.nodes.length
       if (best_lines === undefined || lines < best_lines) {
@@ -123,6 +143,3 @@ function main_find_best(
   }
   return best_start
 }
-
-
-

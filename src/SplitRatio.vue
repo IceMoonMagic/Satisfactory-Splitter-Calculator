@@ -7,6 +7,7 @@ import InputList from "./components/graphInputs/InputList.vue"
 import GraphView from "./components/graphOutputs/GraphView.vue"
 import ToggleButton from "./components/ToggleButton.vue"
 import { ConveyorNode, deserialize } from "./ConveyorNode"
+import { countMultisetPermutations } from "./math.ts"
 
 const inputs = ref<Decimal[]>([new Decimal(60), new Decimal(-1)])
 const outputs = ref<Decimal[]>([30, -1, 15, 15, -1].map((e) => new Decimal(e)))
@@ -65,14 +66,10 @@ function worker_on_message(e: MessageEvent) {
   calculating.value = false
 }
 
-const num_perms = computed(
-  () =>
-    inputs.value
-      .filter((e) => e.gt(0))
-      .reduce<number>((factorial: number, _, i) => factorial * (i + 1), 1) *
-    outputs.value
-      .filter((e) => e.gt(0))
-      .reduce<number>((factorial: number, _, i) => factorial * (i + 1), 1),
+const num_perms = computed(() =>
+  countMultisetPermutations(inputs.value.filter((e) => e.gt(0))).mul(
+    countMultisetPermutations(outputs.value.filter((e) => e.gt(0))),
+  ),
 )
 const try_perms = ref(false)
 
@@ -92,7 +89,8 @@ const try_perms = ref(false)
       v-model="bottleneck_threshold"
     />
     <ToggleButton v-model="try_perms">
-      Calculate all ({{ num_perms }}) permutations and show simplest
+      Calculate all ({{ num_perms.toNumber().toFixed() }}) permutations and show
+      simplest
     </ToggleButton>
     <CalculateButton
       :working="calculating"

@@ -254,47 +254,6 @@ export function deserialize(graph: SerializedGraph): ConveyorNode[] {
     return root_nodes
 }
 
-export function ratio(targets: Decimal[]): Decimal[] {
-
-    function gcd(a: Decimal, b: Decimal): Decimal {
-        let r: Decimal;
-        while (a.mod(b).gt(0)) {
-            r = a.mod(b)
-            a = b
-            b = r
-        }
-        return b
-    }
-
-    function lcm (a: Decimal, b: Decimal): Decimal {
-        return a.mul(b).div(gcd(a, b))
-    }
-
-    let numerators: Decimal[] = new Array()
-    let denominators: Decimal[] = new Array()
-    for (let value of targets) {
-        let [numerator, denominator] = value.toFraction()
-        numerators.push(numerator)
-        denominators.push(denominator)
-    }
-    
-    let lcd = denominators.reduce((_lcm, element) => lcm(_lcm, element))
-
-    for (let index in numerators) {
-        let by = lcd.dividedToIntegerBy(denominators[index])
-        numerators[index] = numerators[index].mul(by)
-        denominators[index] = denominators[index].mul(by)
-    }
-
-    let gcf = numerators.reduce((_gcd, element) => gcd(_gcd, element))
-
-    for (let numerator in numerators) {
-        numerators[numerator] = numerators[numerator].dividedToIntegerBy(gcf)
-    }
-
-    return numerators
-}
-
 export function even_split(
         root_node: ConveyorNode,
         out_amount: number,
