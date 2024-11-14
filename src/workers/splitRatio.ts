@@ -10,9 +10,9 @@ import {
   serialize,
   smart_merge,
   clean_up_graph,
-  findEdgesAndNodes,
-  findLoopBackBottlenecks,
-  replaceLoopBottleneck,
+  find_edges_and_nodes,
+  find_loopback_bottlenecks,
+  replace_loopback_bottleneck,
 } from "../ConveyorNode"
 
 onmessage = (e) => {
@@ -88,8 +88,8 @@ function main(
     }
   }
   if (bottleneck_threshold != undefined) {
-    findLoopBackBottlenecks(root_nodes, bottleneck_threshold).forEach((edge) =>
-      replaceLoopBottleneck(edge),
+    find_loopback_bottlenecks(root_nodes, bottleneck_threshold).forEach(
+      (edge) => replace_loopback_bottleneck(edge),
     )
   }
   smart_merge(split_nodes, ratio_targets, max_merge)
@@ -133,8 +133,8 @@ function main_find_best(
         max_merge,
         bottleneck_threshold,
       )
-      const edgesAndNodes = findEdgesAndNodes(...root_nodes)
-      const lines = edgesAndNodes.edges.length + edgesAndNodes.nodes.length
+      const edges_and_nodes = find_edges_and_nodes(...root_nodes)
+      const lines = edges_and_nodes.edges.length + edges_and_nodes.nodes.length
       if (best_lines === undefined || lines < best_lines) {
         best_lines = lines
         best_start = root_nodes

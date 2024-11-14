@@ -3,9 +3,9 @@ import { instance } from "@viz-js/viz"
 import { computed, ref } from "vue"
 import {
   ConveyorNode,
-  findEdgesAndNodes,
-  findLoopBackBottlenecks,
-  NODE_TYPES,
+  find_edges_and_nodes,
+  find_loopback_bottlenecks,
+  NodeTypes,
 } from "../../ConveyorNode.ts"
 import GraphExport from "./GraphExport.vue"
 
@@ -18,22 +18,22 @@ const as_dot = computed(() => {
   if (props.graph == null) {
     return ""
   }
-  const edgesAndNodes = findEdgesAndNodes(...props.graph)
+  const edgesAndNodes = find_edges_and_nodes(...props.graph)
   let output = "digraph G {\n"
   for (let node of edgesAndNodes.nodes) {
     let label: string = node.sum_outs.toString(),
       shape: string = ""
     switch (node.node_type) {
-      case NODE_TYPES.Source:
+      case NodeTypes.Source:
         shape = "house"
         break
-      case NODE_TYPES.Splitter:
+      case NodeTypes.Splitter:
         shape = "diamond"
         break
-      case NODE_TYPES.Merger:
+      case NodeTypes.Merger:
         shape = "square"
         break
-      case NODE_TYPES.Destination:
+      case NodeTypes.Destination:
         shape = "invhouse"
         label = node.sum_ins.toString()
         break
@@ -42,7 +42,7 @@ const as_dot = computed(() => {
     }
     output += `\t${node.id} [label="${label}" shape="${shape}"];\n`
   }
-  const bottlenecks = findLoopBackBottlenecks(props.graph)
+  const bottlenecks = find_loopback_bottlenecks(props.graph)
   for (let edge of edgesAndNodes.edges) {
     output += `\t${edge.src.id} -> ${edge.dst.id} [label="${edge.carrying}"`
     if (props.bottleneck && bottlenecks.includes(edge)) {

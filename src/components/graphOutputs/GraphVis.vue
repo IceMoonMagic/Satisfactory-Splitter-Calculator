@@ -12,8 +12,8 @@ import {
 import { computed, onMounted, ref, useTemplateRef, watch } from "vue"
 import {
   ConveyorNode,
-  findEdgesAndNodes,
-  NODE_TYPES,
+  find_edges_and_nodes,
+  NodeTypes,
 } from "../../ConveyorNode.ts"
 import GraphVisAddModal from "./GraphVisAddModal.vue"
 
@@ -88,20 +88,20 @@ const data = computed<{ nodes: DataSet<Node>; edges: DataSet<Edge> }>(() => {
     // if (visDiv.value != null) { visDiv.value.innerHTML = '' }
     return null
   }
-  const src_data = findEdgesAndNodes(...props.graph)
+  const src_data = find_edges_and_nodes(...props.graph)
   const nodes = src_data.nodes.map((node) => {
     let n: Node = { id: node.id, label: undefined, shape: undefined }
     switch (node.node_type) {
-      case NODE_TYPES.Splitter:
-      case NODE_TYPES.Source_Splitter:
+      case NodeTypes.Splitter:
+      case NodeTypes.Source_Splitter:
         n.shape = "diamond"
         break
-      case NODE_TYPES.Merger:
-      case NODE_TYPES.Merger_Destination:
+      case NodeTypes.Merger:
+      case NodeTypes.Merger_Destination:
         n.shape = "square"
         break
-      case NODE_TYPES.Island:
-      case NODE_TYPES.Destination:
+      case NodeTypes.Island:
+      case NodeTypes.Destination:
         n.label = node.holding.toString()
     }
     if (n.label == undefined) {

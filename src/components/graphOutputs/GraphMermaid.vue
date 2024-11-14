@@ -5,9 +5,9 @@ import { computed, ref } from "vue"
 import VueMermaidString from "vue-mermaid-string"
 import {
   ConveyorNode,
-  findEdgesAndNodes,
-  findLoopBackBottlenecks,
-  NODE_TYPES,
+  find_edges_and_nodes,
+  find_loopback_bottlenecks,
+  NodeTypes,
 } from "../../ConveyorNode.ts"
 import ToggleButton from "../ToggleButton.vue"
 import GraphExport from "./GraphExport.vue"
@@ -37,7 +37,7 @@ const as_mermaid = computed(() => {
     trapezoid_alt: (label: String) => `[\\${label}/]`,
     circle_double: (label: String) => `(((${label})))`,
   }
-  const edgesAndNodes = findEdgesAndNodes(...props.graph)
+  const edgesAndNodes = find_edges_and_nodes(...props.graph)
   let output = "flowchart TD\n"
   if (useElk.value) {
     output = `%%{init: {"flowchart": {"defaultRenderer": "elk"}} }%%\n${output}`
@@ -45,16 +45,16 @@ const as_mermaid = computed(() => {
   for (let node of edgesAndNodes.nodes) {
     let label: String
     switch (node.node_type) {
-      case NODE_TYPES.Source:
+      case NodeTypes.Source:
         label = shapes.trapezoid(node.sum_outs.toString())
         break
-      case NODE_TYPES.Splitter:
+      case NodeTypes.Splitter:
         label = shapes.rhombus(node.sum_outs.toString())
         break
-      case NODE_TYPES.Merger:
+      case NodeTypes.Merger:
         label = shapes.rect(node.sum_outs.toString())
         break
-      case NODE_TYPES.Destination:
+      case NodeTypes.Destination:
         label = shapes.trapezoid_alt(node.sum_ins.toString())
         break
       default:
@@ -65,7 +65,7 @@ const as_mermaid = computed(() => {
     output += `\t${node.id}${label}\n`
   }
 
-  const bottlenecks = findLoopBackBottlenecks(props.graph)
+  const bottlenecks = find_loopback_bottlenecks(props.graph)
   for (let edge of edgesAndNodes.edges) {
     if (props.bottleneck && bottlenecks.includes(edge)) {
       output += `\t${edge.src.id} == ${edge.carrying} ==> ${edge.dst.id}\n`
