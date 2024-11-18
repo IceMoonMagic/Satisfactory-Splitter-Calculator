@@ -200,3 +200,135 @@ export function ratio(targets: Decimal[]): Decimal[] {
 
   return numerators
 }
+
+if (import.meta.vitest) {
+  const { describe, expect, test } = import.meta.vitest
+  const to_decimals = (...items: (number | Decimal)[]) =>
+    items.map((item) => new Decimal(item))
+
+  describe("factorial", () =>
+    test.for([
+      [4, 24],
+      [8, 40_320],
+      [13, 6_227_020_800],
+    ])("%i -> %i", ([n, result]) =>
+      expect(factorial(n)).toEqual(new Decimal(result)),
+    ))
+
+  describe("toMultiset", () =>
+    test.each([
+      [[1, 1, 1], [[1, 3]]],
+      [
+        [1, 2, 3],
+        [
+          [1, 1],
+          [2, 1],
+          [3, 1],
+        ],
+      ],
+    ])("%o -> %o", (items: number[], result: number[][]) =>
+      expect(toMultiset(to_decimals(...items))).toEqual(
+        new Map(result.map((r) => [r[0].toString(), r[1]])),
+      ),
+    ))
+
+  describe("countMultisetPermutations", () =>
+    test.each([
+      [[1, 1, 1], 1],
+      [[1, 2, 2], 3],
+      [[1, 2, 3], 6],
+    ])("%o -> %i", (items: number[], result: number) =>
+      expect(countMultisetPermutations(to_decimals(...items))).toEqual(
+        new Decimal(result),
+      ),
+    ))
+
+  describe("multisetPermutations", () =>
+    test.each([
+      [[1, 1, 1], [[1, 1, 1]]],
+      [
+        [1, 2, 2],
+        [
+          [1, 2, 2],
+          [2, 1, 2],
+          [2, 2, 1],
+        ],
+      ],
+      [
+        [1, 2, 3],
+        [
+          [1, 2, 3],
+          [1, 3, 2],
+          [2, 1, 3],
+          [2, 3, 1],
+          [3, 1, 2],
+          [3, 2, 1],
+        ],
+      ],
+    ])("%o -> %o", (items: number[], results: number[][]) => {
+      expect(new Set(multisetPermutations(to_decimals(...items)))).toEqual(
+        new Set(results.map((perm) => to_decimals(...perm))),
+      )
+    }))
+
+  test("primes", () =>
+    expect(Array.from(primes(137))).toEqual(
+      to_decimals(
+        // Spread keeps prettier from putting each on a newline
+        ...[
+          2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61,
+          67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137,
+        ],
+      ),
+    ))
+  describe("find_next_multiple", () =>
+    test.each([
+      [2, [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]],
+      [3, [2, 3, 4, 6, 8, 9, 12, 16, 18, 24, 27]],
+    ])("%i -> %o", (largest: number, results: number[]) => {
+      for (let i = 2; i < results[results.length - 1]; i++) {
+        expect(find_next_multiple(new Decimal(i), largest)).toEqual(
+          new Decimal(results.find((n) => n >= i)),
+        )
+      }
+    }))
+
+  describe("prime_factorization", () =>
+    test.each([
+      [2, [2]],
+      [3, [3]],
+      [4, [2, 2]],
+      [5, [5]],
+      [6, [2, 3]],
+      [7, [7]],
+      [8, [2, 2, 2]],
+      [9, [3, 3]],
+      [16, [2, 2, 2, 2]],
+      [36, [2, 2, 3, 3]],
+    ])("%i -> %o", (n, factors) => {
+      expect(prime_factorization(new Decimal(n), true)).toEqual(
+        to_decimals(...factors),
+      )
+      expect(prime_factorization(new Decimal(n), false)).toEqual(
+        to_decimals(...factors.reverse()),
+      )
+    }))
+
+  describe("ratio", () =>
+    test.each([
+      [
+        [60, 60],
+        [1, 1],
+      ],
+      [
+        [15, 30, 60],
+        [1, 2, 4],
+      ],
+      [
+        [0.5, 1, 1.5, 3],
+        [1, 2, 3, 6],
+      ],
+    ])("%o -> %o", (input, result) =>
+      expect(ratio(to_decimals(...input))).toEqual(to_decimals(...result)),
+    ))
+}

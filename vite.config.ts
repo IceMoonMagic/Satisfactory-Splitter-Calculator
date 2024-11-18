@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig, type PluginOption } from "vite"
 import vue from "@vitejs/plugin-vue"
 import { visualizer } from "rollup-plugin-visualizer"
@@ -20,5 +21,12 @@ export default defineConfig({
         },
       },
     },
+  },
+  // @ts-ignore
+  test: {
+    includeSource: ["src/**/*.{js,ts}"],
+  },
+  define: {
+    "import.meta.vitest": "undefined",
   },
 })
