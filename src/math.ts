@@ -77,8 +77,14 @@ function* primes(stopAt?: Decimal | number): Generator<Decimal> {
     }
     yield n
   }
-  for (n = n.plus(1); stopAt == undefined || n.lessThanOrEqualTo(stopAt); n = n.plus(1)) {
-    if (found_primes.find((p) => n.dividedBy(p).mod(1).equals(0)) === undefined) {
+  for (
+    n = n.plus(1);
+    stopAt == undefined || n.lessThanOrEqualTo(stopAt);
+    n = n.plus(1)
+  ) {
+    if (
+      found_primes.find((p) => n.dividedBy(p).mod(1).equals(0)) === undefined
+    ) {
       // If not divisible by any other prime
       found_primes.push(n)
       yield n
@@ -86,20 +92,66 @@ function* primes(stopAt?: Decimal | number): Generator<Decimal> {
   }
 }
 
+const found_multiples: Map<number, Decimal[]> = new Map()
+
+/**
+ * Find the next smallest number with prime factors no bigger than `largest_factor`.
+ * @param start
+ * @param largest_factor
+ */
+export function find_next_multiple(
+  start: Decimal,
+  largest_factor: number = 3,
+): Decimal {
+  if (!found_multiples.has(largest_factor)) {
+    found_multiples.set(largest_factor, [new Decimal(2)])
+  }
+  let found = found_multiples.get(largest_factor)
+  let n = found[found.length - 1]
+  if (n.greaterThanOrEqualTo(start)) {
+    return found.find((p) => p.greaterThanOrEqualTo(start))
+  }
+
+  while ((n = n.plus(1))) {
+    if (!prime_factorization(n).some((p) => p.greaterThan(largest_factor))) {
+      found.push(n)
+      if (n.greaterThanOrEqualTo(start)) {
+        return n
+      }
+    }
+  }
+  /* // Finds out of size order, e.g. 7 -> [3, 3, 3] vs [2, 2, 2, 2]
+  for (let num_factors = 1; ; num_factors += 1) {
+    for (let num_twos = num_factors; num_twos >= 0; num_twos--) {
+      console.log(num_twos)
+      let val = new Decimal(1)
+        .times(new Decimal(2).toPower(num_twos))
+        .times(new Decimal(3).toPower(num_factors - num_twos))
+
+      if (val.greaterThanOrEqualTo(start)) {
+        return val
+      }
+    }
+  }*/
+}
+
 /**
  * Returns the prime factorization of `n`
  * @param n
+ * @param smaller_first - return list in ascending order
  */
-export function primeFactorization(n: Decimal): Decimal[] {
+export function prime_factorization(
+  n: Decimal,
+  smaller_first: boolean = true,
+): Decimal[] {
   let factorization: Decimal[] = []
-  for (let p of primes(n.dividedBy(2))) {
-    // Cou
+  for (let p of primes(n)) {
     for (
       let quotient = n.dividedBy(p);
       quotient.mod(1).equals(0);
       quotient = quotient.dividedBy(p)
     ) {
-      factorization.push(p)
+      smaller_first ? factorization.push(p) : factorization.unshift(p)
     }
   }
   return factorization
@@ -128,7 +180,9 @@ export function ratio(targets: Decimal[]): Decimal[] {
     denominators.push(denominator)
   }
 
-  let lcd = denominators.reduce((lcm, element) => leastCommonMultiple(lcm, element))
+  let lcd = denominators.reduce((lcm, element) =>
+    leastCommonMultiple(lcm, element),
+  )
 
   for (let index in numerators) {
     let by = lcd.dividedToIntegerBy(denominators[index])
@@ -136,7 +190,9 @@ export function ratio(targets: Decimal[]): Decimal[] {
     denominators[index] = denominators[index].times(by)
   }
 
-  let gcf = numerators.reduce((_gcd, element) => greatestCommonDenominator(_gcd, element))
+  let gcf = numerators.reduce((_gcd, element) =>
+    greatestCommonDenominator(_gcd, element),
+  )
 
   for (let numerator in numerators) {
     numerators[numerator] = numerators[numerator].dividedToIntegerBy(gcf)

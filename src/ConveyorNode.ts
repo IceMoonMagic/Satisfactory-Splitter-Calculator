@@ -1,4 +1,5 @@
 import { Decimal } from "decimal.js"
+import { find_next_multiple, prime_factorization } from "./math.ts"
 
 class ConveyorLink {
   public readonly src: ConveyorNode
@@ -73,11 +74,11 @@ export class ConveyorNode {
   }
 
   get sum_ins(): Decimal {
-    return Decimal.sum(...this.ins.map((link) => link.carrying))
+    return Decimal.sum(...this.ins.map((link) => link.carrying), 0)
   }
 
   get sum_outs(): Decimal {
-    return Decimal.sum(...this.outs.map((link) => link.carrying))
+    return Decimal.sum(...this.outs.map((link) => link.carrying), 0)
   }
 
   get splits_evenly(): boolean {
@@ -292,6 +293,57 @@ export function even_split(
 
   _split(root_node, out_amount, [])
   return near_nodes
+}
+
+export function factor_split(
+  root_node: ConveyorNode,
+  factors: Decimal[],
+): ConveyorNode[] {
+  if (factors.length === 0) {
+    return [root_node]
+  }
+  if (!factors[0].isInteger()) {
+    throw Error(`Factor not an integer (${factors[0]}`)
+  } else if (factors[0].lessThan(2)) {
+    throw Error(`Factor must be at least \`2\` | Got ${factors[0]}`)
+  }
+
+  let children: ConveyorNode[] = []
+  let split = root_node.split_into(factors[0])
+  for (let i = 0; factors[0].greaterThan(i); i++) {
+    let new_node = new ConveyorNode()
+    root_node.link_to(new_node, split)
+    children.push(new_node)
+  }
+  return children.reduce<ConveyorNode[]>(
+    (result, child) => result.concat(factor_split(child, factors.slice(1))),
+    [],
+  )
+}
+
+function prime_split(
+  root_node: ConveyorNode,
+  out_amount: Decimal,
+  reverse_primes: boolean,
+  max_split: number = 3,
+): ConveyorNode[] {
+  if (out_amount.lessThanOrEqualTo(max_split)) {
+    let result = []
+    const carrying = root_node.split_into(out_amount)
+    for (let s = 0; !out_amount.greaterThan(s); s++) {
+      let new_node = new ConveyorNode()
+      result.push(new_node)
+      root_node.link_to(new_node, carrying)
+    }
+    return result
+  }
+
+  const splittable = find_next_multiple(root_node.holding, max_split)
+  const splittable_factors = prime_factorization(splittable, reverse_primes)
+  factor_split(root_node, splittable_factors)
+
+  const loops = splittable.minus(out_amount)
+  // ToDo: Connect Loops
 }
 
 function merge(
