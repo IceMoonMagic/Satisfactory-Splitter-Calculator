@@ -205,8 +205,8 @@ export function replace_loopback_bottleneck(replaceLink: ConveyorLink): void {
 }
 
 export interface SerializedGraph {
-  edges: { src: number; dst: number; carrying: number }[]
-  nodes: Map<number, number>
+  edges: { src: number; dst: number; carrying: string }[]
+  nodes: Map<number, string>
 }
 
 export function serialize(...root_nodes: ConveyorNode[]): SerializedGraph {
@@ -216,13 +216,13 @@ export function serialize(...root_nodes: ConveyorNode[]): SerializedGraph {
       return {
         src: edge.src.id,
         dst: edge.dst.id,
-        carrying: edge.carrying.toNumber(),
+        carrying: edge.carrying.toJSON(),
       }
     }),
     nodes: new Map(
       nodes.map((node) => [
         node.id,
-        node.holding.minus(node.sum_ins).add(node.sum_outs).toNumber(),
+        node.holding.minus(node.sum_ins).add(node.sum_outs).toJSON(),
       ]),
     ),
   }
@@ -321,10 +321,10 @@ export function factor_split(
   )
 }
 
-function prime_split(
+export function prime_split(
   root_node: ConveyorNode,
   out_amount: Decimal,
-  reverse_primes: boolean,
+  reverse_primes: boolean = false,
   max_split: number = 3,
 ): ConveyorNode[] {
   if (out_amount.lessThanOrEqualTo(max_split)) {
