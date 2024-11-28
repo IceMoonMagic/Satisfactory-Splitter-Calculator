@@ -66,11 +66,11 @@ export class ConveyorNode {
   }
 
   public unlink_to_all() {
-    this.outs.forEach((link) => link.remove_link())
+    Array.from(this.outs).forEach((link) => link.remove_link())
   }
 
   public unlink_from_all() {
-    this.ins.forEach((link) => link.remove_link())
+    Array.from(this.ins).forEach((link) => link.remove_link())
   }
 
   get sum_ins(): Decimal {
@@ -81,15 +81,25 @@ export class ConveyorNode {
     return Decimal.sum(...this.outs.map((link) => link.carrying), 0)
   }
 
-  get splits_evenly(): boolean {
+  /** If all out links are carrying the same amount */
+  get does_split_evenly(): boolean {
     let target: Decimal = this.sum_outs.dividedBy(this.outs.length)
-    return this.outs.find((link) => !link.carrying.equals(target)) === undefined
+    return !this.outs.some((link) => !link.carrying.equals(target))
   }
 
+  /**
+   * Returns a carrying amount that would keep `does_split_evenly` true
+   * OR `this.holding` if no existing out links.
+   */
   get splittable(): Decimal {
     return this.outs.length > 0 ? this.outs[0].carrying : this.holding
   }
 
+  /**
+   * Returns `this.holding / r`
+   * unless `this.holding == 0`
+   * or an out link exists.
+   */
   public split_into(r: Decimal | number): Decimal {
     if (this.holding.equals(0)) {
       return this.holding
@@ -166,7 +176,6 @@ export function find_loopback_bottlenecks(
   root_nodes.forEach((node) =>
     _find_bottlenecks(node, threshold ?? node.sum_outs),
   )
-  console.log(bottlenecks)
   return bottlenecks
 }
 
@@ -364,7 +373,7 @@ function merge(
     i < max_merge && merge_nodes.length > 0;
     i++
   ) {
-    merge_nodes.splice(0, 1)[0].link_to(to_node)
+    merge_nodes.shift().link_to(to_node)
   }
   if (merge_nodes.length > 0) {
     merge_nodes.push(to_node)
@@ -373,6 +382,15 @@ function merge(
   return to_node
 }
 
+/**
+ * Merge nodes together. Checks to remove obsoleted splitters.
+ * @param end_nodes - List of nodes to merge.
+ * Expects all to be holding the same amount.
+ * @param into - List of targets.
+ * Sum(into) == end_nodes.length
+ * @param max_merge - Maximum number of edges a single node can merge
+ * Min = 2
+ */
 export function smart_merge(
   end_nodes: ConveyorNode[],
   into: Decimal[],
@@ -424,6 +442,7 @@ export function smart_merge(
       while (root.ins.length > 1) {
         root.ins[1].remove_link()
       }
+      // Restart for loop
       i = -1
     }
     if (merge_nodes.length > 1) {

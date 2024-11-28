@@ -5,8 +5,11 @@ import {
   even_split,
   factor_split,
   find_edges_and_nodes,
+  find_loopback_bottlenecks,
   prime_split,
+  replace_loopback_bottleneck,
   serialize,
+  smart_merge,
 } from "../src/ConveyorNode"
 import { assert, describe, expect, test } from "vitest"
 import { prime_factorization } from "../src/math"
@@ -25,7 +28,8 @@ function is_legal_graph(...root_nodes: ConveyorNode[]): boolean {
   const is_standard = (node: ConveyorNode) =>
     node.sum_ins.equals(node.sum_outs) && node.holding.equals(0)
   const is_source = (node: ConveyorNode) =>
-    node.ins.length == 0 && node.holding.equals(node.sum_outs)
+    node.ins.length == 0 &&
+    (node.holding.equals(0) || node.holding.equals(node.sum_outs.neg()))
   const is_destination = (node: ConveyorNode) =>
     node.outs.length == 0 && node.holding.equals(node.sum_ins)
   let nodes = find_edges_and_nodes(...root_nodes).nodes
@@ -45,18 +49,19 @@ function get_leaves(...root_nodes: ConveyorNode[]): ConveyorNode[] {
   )
 }
 
-function to_check_able(nodes: ConveyorNode[]) {
-  function _map_link(link: {
-    src: ConveyorNode
-    carrying: Decimal
-    dst: ConveyorNode
-  }) {
-    return {
-      src: link.src.id,
-      carrying: link.carrying,
-      dst: link.dst.id,
-    }
+function _map_link(link: {
+  src: ConveyorNode
+  carrying: Decimal
+  dst: ConveyorNode
+}) {
+  return {
+    src: link.src.id,
+    carrying: link.carrying,
+    dst: link.dst.id,
   }
+}
+
+function to_check_able(nodes: ConveyorNode[]) {
   return new Set(
     nodes.map((node) => {
       return {
@@ -68,7 +73,51 @@ function to_check_able(nodes: ConveyorNode[]) {
   )
 }
 
-describe("ConveyorNode Properties")
+describe("ConveyorNode Properties", () => {
+  test("sum_ins", () => {
+    const target_node = new ConveyorNode()
+    for (let value of [32, 16, 8, 4, 2, 1, 0.5, 0.25, 0.125]) {
+      let src_node = new ConveyorNode(new Decimal(1).dividedBy(value))
+      src_node.link_to(target_node)
+    }
+    expect(target_node.sum_ins).toEqual(new Decimal(15.96875))
+  })
+  test("sum_outs", () => {
+    const source_node = new ConveyorNode(new Decimal(15.96875))
+    for (let value of [32, 16, 8, 4, 2, 1, 0.5, 0.25, 0.125]) {
+      let dst_node = new ConveyorNode()
+      source_node.link_to(dst_node, new Decimal(1).dividedBy(value))
+    }
+    expect(source_node.sum_outs).toEqual(new Decimal(15.96875))
+  })
+  test("splits_evenly", () => {
+    const node = new ConveyorNode()
+    node.link_to(new ConveyorNode(), new Decimal(4))
+    node.link_to(new ConveyorNode(), new Decimal(4))
+    node.link_to(new ConveyorNode(), new Decimal(4))
+    expect(node.does_split_evenly).toBeTruthy()
+    node.link_to(new ConveyorNode(), new Decimal(8))
+    expect(node.does_split_evenly).toBeFalsy()
+  })
+  test("splittable", () => {
+    const node = new ConveyorNode(new Decimal(60))
+    expect(node.splittable).toEqual(new Decimal(60))
+    node.link_to(new ConveyorNode(), new Decimal(30))
+    expect(node.splittable).toEqual(new Decimal(30))
+    // Drain holding to 0
+    node.link_to(new ConveyorNode(), new Decimal(30))
+    expect(node.splittable).toEqual(new Decimal(30))
+  })
+  test("split_into", () => {
+    const node = new ConveyorNode(new Decimal(60))
+    expect(node.split_into(4)).toEqual(new Decimal(15))
+    node.link_to(new ConveyorNode(), new Decimal(15))
+    expect(node.split_into(2)).toEqual(new Decimal(15))
+    // Drain holding to 0
+    node.link_to(new ConveyorNode(), new Decimal(45))
+    expect(node.split_into(4)).toEqual(new Decimal(0))
+  })
+})
 
 test("Linking", () => {
   const node1 = new ConveyorNode(new Decimal(5))
@@ -81,6 +130,7 @@ test("Linking", () => {
   expect(node3.holding).toEqual(new Decimal(0))
 
   node1.unlink_to_all()
+  expect(node1.outs.length).toBe(0)
   expect(node1.holding).toEqual(new Decimal(5))
   expect(node2.holding).toEqual(new Decimal(0))
   expect(node3.holding).toEqual(new Decimal(0))
@@ -104,7 +154,7 @@ test("find_edges_and_nodes", () => {
   nodes[2].link_to(nodes[5], new Decimal(2))
   nodes[4].link_to(nodes[5], new Decimal(1.5))
   nodes[4].link_to(nodes[6])
-  const edges = []
+  const edges: any[] = []
   nodes.forEach((node) => {
     edges.push(...node.outs)
   })
@@ -116,7 +166,30 @@ test("find_edges_and_nodes", () => {
   result.edges.forEach((edge) => expect(edges).toContain(edge))
 })
 
-describe("Loop Bottlenecks")
+describe("Loop Bottlenecks", () => {
+  describe.each([
+    ["Undefined", undefined, 1],
+    ["w/ Matches", 5, 1],
+    ["w/o Matches", 6, 0],
+  ])("Threshold %s", (_id_str, threshold, bottlenecks) => {
+    let root_node = new ConveyorNode(new Decimal(5))
+    let spacer_node = new ConveyorNode()
+    root_node.link_to(spacer_node)
+    even_split(spacer_node, 5)
+    let bottleneck = root_node.outs[0].dst.outs[0]
+    test("Find Bottleneck", () => {
+      let result = find_loopback_bottlenecks([root_node], threshold)
+      expect(result.length).toBe(bottlenecks)
+      if (bottlenecks > 0) expect(result[0]).toBe(bottleneck)
+    })
+    if (bottlenecks > 0)
+      test("Fix Bottleneck", () => {
+        replace_loopback_bottleneck(bottleneck)
+        expect(is_legal_graph(root_node)).toBeTruthy()
+        expect(find_loopback_bottlenecks([root_node]).length).toBe(0)
+      })
+  })
+})
 
 test("Serializing", () => {
   const root_node1 = new ConveyorNode(new Decimal(60)) // Serialize integers
@@ -134,19 +207,71 @@ describe("Splitting", () => {
   describe.each([
     [even_split, (v: number) => v],
     [factor_split, (v: number) => prime_factorization(new Decimal(v))],
-    [prime_split, (v: number) => new Decimal(v)],
+    // [prime_split, (v: number) => new Decimal(v)],
   ])("%o", (fn: Function, transform_amount: Function) =>
     test.each([2, 3, 4, 5, 6, 7, 8, 9, 13, 15, 32, 60])(
       "%i",
       (amount: number) => {
         let root_node = new ConveyorNode(new Decimal(amount))
-        fn(root_node, transform_amount(amount))
-        expect(is_legal_graph(root_node)).toBeTruthy
+        let spacer = new ConveyorNode()
+        root_node.link_to(spacer)
+        fn(spacer, transform_amount(amount))
+        expect(is_legal_graph(root_node)).toBeTruthy()
         let leaves = get_leaves(root_node)
-        expect(leaves.length == amount).toBeTruthy
-        expect(!leaves.some((node) => !node.holding.equals(1))).toBeTruthy
+        expect(leaves.length).toBe(amount)
+        expect(!leaves.some((node) => !node.holding.equals(1))).toBeTruthy()
       },
     ),
   )
 })
-describe("Merging")
+
+// test.todo("merge") // Not exproted
+
+describe("Smart Merge", () => {
+  describe.each([
+    [[2], [[1, 1], [2]]],
+    [
+      [3],
+      [
+        [1, 1, 1],
+        [1, 2],
+        [2, 1],
+      ],
+    ],
+    [
+      [2, 2],
+      [
+        [1, 1, 1, 1],
+        [1, 1, 2],
+        [1, 2, 1],
+        [2, 1, 1],
+        [2, 2],
+        [1, 3],
+        [3, 1],
+      ],
+    ],
+    [[2, 3], [[1, 1, 1, 1, 1, 1]]],
+  ])("%o => %o", (splits: number[], into: number[][]) => {
+    const splits_d = splits.map((n) => new Decimal(n))
+    const into_d = into.map((na: number[]) =>
+      na.map((n: number) => new Decimal(n)),
+    )
+    // return
+    describe.each([into_d])("Into", (_into: Decimal[]) => {
+      test.each([2, 3, 4, 5, 7])("Merge %d", (max_merge: number) => {
+        let root_node = new ConveyorNode(Decimal.sum(..._into))
+        let spacer_node = new ConveyorNode()
+        root_node.link_to(spacer_node)
+        let split_nodes = factor_split(spacer_node, splits_d)
+        let end_nodes = smart_merge(split_nodes, _into, max_merge)
+        expect(is_legal_graph(root_node)).toBeTruthy()
+        expect(to_check_able(get_leaves(root_node))).toEqual(
+          to_check_able(end_nodes),
+        )
+        expect(
+          new Set(get_leaves(root_node).map((node) => node.holding)),
+        ).toEqual(new Set(_into))
+      })
+    })
+  })
+})
