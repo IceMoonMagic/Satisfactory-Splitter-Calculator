@@ -1,77 +1,18 @@
 import { Decimal } from "decimal.js"
+import { describe, expect, test } from "vitest"
 import {
   ConveyorNode,
   deserialize,
   even_split,
-  factor_split,
+  split_by_factors,
   find_edges_and_nodes,
   find_loopback_bottlenecks,
-  prime_split,
   replace_loopback_bottleneck,
   serialize,
   smart_merge,
 } from "../src/ConveyorNode"
-import { assert, describe, expect, test } from "vitest"
 import { prime_factorization } from "../src/math"
-
-/**
- * Determines if a graph's numbers make sense.
- *
- * A legal graph is one where every node has either:
- * 1. All ins become outs (standard nodes)
- * 2. No ins, holding 0 and some outs (source nodes)
- * 3. No outs, and holding equals ins (destination nodes)
- * @param root_nodes
- */
-function is_legal_graph(...root_nodes: ConveyorNode[]): boolean {
-  // `ConveyorNode.node_type` just counts number of in / out links, not carrying
-  const is_standard = (node: ConveyorNode) =>
-    node.sum_ins.equals(node.sum_outs) && node.holding.equals(0)
-  const is_source = (node: ConveyorNode) =>
-    node.ins.length == 0 &&
-    (node.holding.equals(0) || node.holding.equals(node.sum_outs.neg()))
-  const is_destination = (node: ConveyorNode) =>
-    node.outs.length == 0 && node.holding.equals(node.sum_ins)
-  let nodes = find_edges_and_nodes(...root_nodes).nodes
-  let result = nodes.some(
-    (node) => !(is_standard(node) || is_source(node) || is_destination(node)),
-  )
-  return !result
-}
-
-/**
- * Counts the `holding` for each reachable node that has no outs.
- * @param root_nodes
- */
-function get_leaves(...root_nodes: ConveyorNode[]): ConveyorNode[] {
-  return find_edges_and_nodes(...root_nodes).nodes.filter(
-    (node) => node.outs.length == 0,
-  )
-}
-
-function _map_link(link: {
-  src: ConveyorNode
-  carrying: Decimal
-  dst: ConveyorNode
-}) {
-  return {
-    src: link.src.id,
-    carrying: link.carrying,
-    dst: link.dst.id,
-  }
-}
-
-function to_check_able(nodes: ConveyorNode[]) {
-  return new Set(
-    nodes.map((node) => {
-      return {
-        ins: node.ins.map(_map_link),
-        holding: node.holding,
-        outs: node.outs.map(_map_link),
-      }
-    }),
-  )
-}
+import { get_leaves, is_legal_graph, to_check_able } from "./utils"
 
 describe("ConveyorNode Properties", () => {
   test("sum_ins", () => {
@@ -206,7 +147,7 @@ test("Serializing", () => {
 describe("Splitting", () => {
   describe.each([
     [even_split, (v: number) => v],
-    [factor_split, (v: number) => prime_factorization(new Decimal(v))],
+    [split_by_factors, (v: number) => prime_factorization(new Decimal(v))],
     // [prime_split, (v: number) => new Decimal(v)],
   ])("%o", (fn: Function, transform_amount: Function) =>
     test.each([2, 3, 4, 5, 6, 7, 8, 9, 13, 15, 32, 60])(
@@ -225,7 +166,7 @@ describe("Splitting", () => {
   )
 })
 
-// test.todo("merge") // Not exproted
+// test.todo("merge") // Not exported
 
 describe("Smart Merge", () => {
   describe.each([
@@ -262,7 +203,7 @@ describe("Smart Merge", () => {
         let root_node = new ConveyorNode(Decimal.sum(..._into))
         let spacer_node = new ConveyorNode()
         root_node.link_to(spacer_node)
-        let split_nodes = factor_split(spacer_node, splits_d)
+        let split_nodes = split_by_factors(spacer_node, splits_d)
         let end_nodes = smart_merge(split_nodes, _into, max_merge)
         expect(is_legal_graph(root_node)).toBeTruthy()
         expect(to_check_able(get_leaves(root_node))).toEqual(

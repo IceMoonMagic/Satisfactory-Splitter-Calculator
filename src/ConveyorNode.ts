@@ -1,5 +1,4 @@
 import { Decimal } from "decimal.js"
-import { find_next_multiple, prime_factorization } from "./math.ts"
 
 class ConveyorLink {
   public readonly src: ConveyorNode
@@ -152,7 +151,7 @@ export function find_edges_and_nodes(...root_nodes: ConveyorNode[]) {
  * If threshold is provided, assumes all sources and targets are within that threshold.
  * Otherwise, assumes all of a root's children are smaller than it (excluding loopbacks).
  * @param root_nodes Nodes at the top of graphs to traverse
- * @param threshold Maxiumum allowable link.carrying
+ * @param threshold Maximum allowable `link.carrying`
  * @returns
  */
 export function find_loopback_bottlenecks(
@@ -304,7 +303,7 @@ export function even_split(
   return near_nodes
 }
 
-export function factor_split(
+export function split_by_factors(
   root_node: ConveyorNode,
   factors: Decimal[],
 ): ConveyorNode[] {
@@ -325,34 +324,9 @@ export function factor_split(
     children.push(new_node)
   }
   return children.reduce<ConveyorNode[]>(
-    (result, child) => result.concat(factor_split(child, factors.slice(1))),
+    (result, child) => result.concat(split_by_factors(child, factors.slice(1))),
     [],
   )
-}
-
-export function prime_split(
-  root_node: ConveyorNode,
-  out_amount: Decimal,
-  reverse_primes: boolean = false,
-  max_split: number = 3,
-): ConveyorNode[] {
-  if (out_amount.lessThanOrEqualTo(max_split)) {
-    let result = []
-    const carrying = root_node.split_into(out_amount)
-    for (let s = 0; !out_amount.greaterThan(s); s++) {
-      let new_node = new ConveyorNode()
-      result.push(new_node)
-      root_node.link_to(new_node, carrying)
-    }
-    return result
-  }
-
-  const splittable = find_next_multiple(root_node.holding, max_split)
-  const splittable_factors = prime_factorization(splittable, reverse_primes)
-  factor_split(root_node, splittable_factors)
-
-  const loops = splittable.minus(out_amount)
-  // ToDo: Connect Loops
 }
 
 function merge(
