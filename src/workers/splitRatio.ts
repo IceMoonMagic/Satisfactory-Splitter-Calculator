@@ -7,7 +7,10 @@ onmessage = (e: MessageEvent) => {
   const from: Decimal[] = e.data.from.map((v: number) => new Decimal(v))
   const max_split: number = e.data.max_split
   const max_merge: number = e.data.max_merge
-  const bottleneck_threshold: Decimal = new Decimal(e.data.bottleneck_threshold)
+  const bottleneck_threshold: Decimal =
+    e.data.bottleneck_threshold != undefined
+      ? new Decimal(e.data.bottleneck_threshold)
+      : undefined
   let graph: ConveyorNode[]
   if (e.data.ratio_perms !== true) {
     graph = main(into, from, max_split, max_merge, bottleneck_threshold)

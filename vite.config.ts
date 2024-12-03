@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [vue(), visualizer() as PluginOption],
   base: "/Satisfactory-Splitter-Calculator/",
   build: {
+    sourcemap: true,
     rollupOptions: {
       output: {
         // Put everything that's just from `vue-mermaid-string` into a folder
