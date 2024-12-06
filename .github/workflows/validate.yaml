@@ -24,7 +24,7 @@ jobs:
       - name: Check Prettier
         uses: borales/actions-yarn@v4
         with:
-          cmd: prettier --list-different src test
+          cmd: prettier --list-different src tests
 
   vitest:
     runs-on: ubuntu-latest
