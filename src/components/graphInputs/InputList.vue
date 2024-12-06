@@ -86,10 +86,10 @@ const simplifiedInputs = computed<SimplifiedRow[]>(() => {
   <div class="w-full rounded-lg p-2 outline outline-1 outline-lavender">
     <label v-if="props.label">{{ props.label }}</label>
     <div class="flex">
-      <label class="w-full px-2">Items per Minute</label>
+      <label class="w-full px-2"> Items per Minute </label>
       <label>&nbsp;</label>
-      <label class="w-2/5 px-2">Times</label>
-      <label class="px-2">Delete</label>
+      <label class="w-2/5 px-2"> Times </label>
+      <label class="px-2"> Delete </label>
     </div>
     <div class="mb-2 flex" v-for="row in simplifiedInputs">
       <input
@@ -97,23 +97,30 @@ const simplifiedInputs = computed<SimplifiedRow[]>(() => {
         @input="(e) => updateInput(e, row)"
         class="w-full"
         min="0"
+        title="Items per Minute"
         type="number"
       />
-      <span class="pt-4">x</span>
+      <span class="pt-4"> x </span>
       <input
         :value="row.repeat"
         @input="(e) => updateRepeat(e, row)"
         class="w-2/5"
         min="1"
+        title="Include N Times"
         type="number"
       />
-      <button @click="removeInput(row)" class="colored bg-red">
+      <button
+        @click="removeInput(row)"
+        class="colored bg-red"
+        title="Delete Row"
+      >
         <TrashIcon class="colored size-5" />
       </button>
     </div>
     <button
       @click="addInput()"
       class="colored flex w-full justify-center bg-green"
+      title="Add New Row"
     >
       <PlusIcon class="colored size-5" />
     </button>

@@ -168,8 +168,9 @@ const smaller_first = defineModel<boolean>("smaller_first", undefined)
     </div>
     <ToggleButton v-model="smaller_first"> Split Smaller First </ToggleButton>
     <a
-      href="https://github.com/IceMoonMagic/Satisfactory-Splitter-Calculator?tab=readme-ov-file#loopback-bottlenecking"
+      href="https://github.com/IceMoonMagic/Satisfactory-Splitter-Calculator?tab=readme-ov-file#extra-options"
       target="_blank"
+      title="More Information"
     >
       <InformationCircleIcon class="inline size-4 text-text" />
     </a>

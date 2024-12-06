@@ -15,12 +15,16 @@ const highlight_bottleneck = ref(false)
 </script>
 
 <template>
-  <label for="select_graph">Choose Graph Renderer: </label>
+  <label for="select_graph"> Choose Graph Renderer: </label>
   <select class="rounded-lg p-2" name="select_graph" v-model="renderer">
     <option>GraphViz</option>
     <option>Mermaid</option>
   </select>
-  <ToggleButton class="m-2" v-model="highlight_bottleneck">
+  <ToggleButton
+    class="m-2"
+    title="Edges that carry more than the root supplies"
+    v-model="highlight_bottleneck"
+  >
     Highlight Potential Bottlenecks?
   </ToggleButton>
   <div v-if="graph != undefined">

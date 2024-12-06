@@ -76,7 +76,7 @@ watch(auto_machines, auto_set_machines)
   >
     <div class="flex flex-wrap sm:flex-nowrap">
       <div class="w-full">
-        <label>Clock Speed (as decimal)</label>
+        <label> Clock Speed (as decimal) </label>
         <input
           class="w-full rounded-lg p-2"
           min="0"
@@ -85,7 +85,7 @@ watch(auto_machines, auto_set_machines)
         />
       </div>
       <div class="w-full">
-        <label>Clock Speed (as percentage)</label>
+        <label> Clock Speed (as percentage) </label>
         <input
           class="w-full rounded-lg p-2"
           min="0"
@@ -96,7 +96,7 @@ watch(auto_machines, auto_set_machines)
     </div>
     <div>
       <div class="flex flex-wrap justify-center">
-        <label>Minimum Machines</label>
+        <label> Minimum Machines </label>
         <div class="flex w-full">
           <input
             :disabled="auto_machines"
@@ -106,12 +106,12 @@ watch(auto_machines, auto_set_machines)
             v-model="input_machines"
           />
           <div class="group relative">
-            <ToggleButton v-model="auto_machines">Auto</ToggleButton>
-            <div
-              class="absolute right-0 top-full my-2 hidden rounded-lg bg-surface2 p-2 outline outline-1 outline-lavender group-hover:inline sm:min-w-max"
+            <ToggleButton
+              title="Set Min Machines to Decimal Clock Speed rounded up."
+              v-model="auto_machines"
             >
-              Set Min Machines to Decimal Clock Speed rounded up.
-            </div>
+              Auto
+            </ToggleButton>
           </div>
         </div>
       </div>

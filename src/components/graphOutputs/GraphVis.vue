@@ -267,9 +267,9 @@ function deleteNode(
   />
   <button @click="network.stabilize()">Stabilize</button>
   <span
-    ><input type="checkbox" v-model="hierarchical" /><label
-      >Hierarchical</label
-    ></span
+    ><input type="checkbox" v-model="hierarchical" /><label>
+      Hierarchical
+    </label></span
   >
   <div class="latte h-96 bg-base text-text" ref="visDiv" />
   <!-- <textarea readonly class="font-mono rounded-lg p-2 w-full">{{ JSON.stringify(as_vis) }}</textarea> -->

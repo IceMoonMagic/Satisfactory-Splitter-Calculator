@@ -109,7 +109,7 @@ const svg = ref<SVGSVGElement>(null)
     filename="SplitResult.mmd"
     mime="application/vnd.mermaid"
   >
-    <ToggleButton v-model="useElk">Mermaid Elk Renderer</ToggleButton>
+    <ToggleButton v-model="useElk"> Mermaid Elk Renderer </ToggleButton>
   </GraphExport>
   <VueMermaidString
     :value="as_mermaid"

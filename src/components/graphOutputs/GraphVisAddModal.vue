@@ -35,7 +35,7 @@ const values = ref([new Decimal(0), new Decimal(-1)])
       class="modal-content flex flex-col gap-2 rounded-lg bg-overlay0 p-2"
     >
       <span class="flex justify-center gap-2">
-        <label>Setting Inputs</label>
+        <label> Setting Inputs </label>
         <input type="checkbox" v-model="checkbox" />
       </span>
       <InputList

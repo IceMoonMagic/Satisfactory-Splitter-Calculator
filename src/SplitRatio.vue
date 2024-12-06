@@ -94,9 +94,11 @@ const try_perms = ref(false)
       v-model:merge_level="merge_level"
       v-model:smaller_first="smaller_first"
     />
-    <ToggleButton v-model="try_perms">
-      Calculate all ({{ num_perms.toNumber().toFixed() }}) permutations and show
-      simplest
+    <ToggleButton
+      title="Calculate all permutations and return the simplest"
+      v-model="try_perms"
+    >
+      Try All ({{ num_perms.toNumber().toFixed() }}) Permutations
     </ToggleButton>
     <CalculateButton
       :working="calculating"

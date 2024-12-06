@@ -20,6 +20,7 @@ const emits = defineEmits({
       :disabled="props.working"
       @click="$emit('start')"
       class="colored flex w-full items-center justify-center bg-peach disabled:motion-safe:animate-pulse"
+      title="Start Calculation"
     >
       <ArrowPathIcon
         class="colored mr-2 size-5 motion-safe:animate-spin"
@@ -31,6 +32,7 @@ const emits = defineEmits({
       :disabled="!props.working"
       @click="$emit('abort')"
       class="colored bg-red"
+      title="Cancel Calculation"
     >
       <NoSymbolIcon class="colored size-5" />
     </button>
