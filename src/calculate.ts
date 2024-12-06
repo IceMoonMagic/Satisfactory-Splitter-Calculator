@@ -22,7 +22,24 @@ interface LeafsAndMergers {
   starved_mergers: ConveyorNode[]
 }
 
-/** Simplify Inputs */
+/**
+ * Step 0 - Simplify Inputs
+ *
+ * Ratio sources and targets such that
+ * they are all integers and the smallest unit is 1.
+ *
+ * E.g. [[60], [30, 15, 15]] -> [[4], [2, 1, 1]]
+ * or [[2, 1], [0.5, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25]] -> [[8, 4],  [2, 2, 2, 2, 2, 1, 1]]
+ * or [[0.5, 0.5], [0.75, 0.25]] -> [[2, 2], [3, 1]]
+ *
+ * sum(targets) must equal sum(sources)
+ *
+ * @param targets
+ * @param sources - Defaults to [<sum of targets>]
+ * @returns Ratio-ed `targets` and `sources`
+ *
+ * @see ratio
+ */
 export function step0(
   targets: Decimal[],
   sources?: Decimal[],
@@ -41,7 +58,11 @@ export function step0(
   return { sources: ratio_sources, targets: ratio_targets }
 }
 
-/** Init Graph */
+/**
+ * Step 1 - Init Graph
+ *
+ * Create a root node for each `raw_source`.
+ */
 export function step1(raw_sources: Decimal[]): ConveyorNode[] {
   const root_nodes: ConveyorNode[] = []
   for (let holding of raw_sources) {
@@ -50,7 +71,18 @@ export function step1(raw_sources: Decimal[]): ConveyorNode[] {
   return root_nodes
 }
 
-/** Split Roots */
+/**
+ * Step 2 - Split Roots
+ *
+ * Split each `root_node` into `count` equal parts.
+ * @param root_nodes
+ * @param counts
+ * @param max_split – Maximum number of belts that a single splitter can split into
+ * @param smaller_splits_first - Split bigger factors first
+ * @param merge_level – Lowest depth to apply mergers. Undefined to ignore
+ * @see even_split
+ * @see factorized_split
+ */
 export function step2(
   root_nodes: ConveyorNode[],
   counts: Decimal[],
@@ -92,21 +124,36 @@ export function step2(
   return { leaf_nodes, starved_mergers }
 }
 
-/** Combine Nodes */
+/**
+ * Step 3 - Combine Nodes
+ *
+ * @param leaf_nodes - Nodes eligible for merging
+ * @param targets
+ * @param max_merge - Maximum number of belts that a single splitter can split into
+ * @param starved_mergers - Mergers still needing some inputs
+ */
 export function step3(
   leaf_nodes: ConveyorNode[],
   targets: Decimal[],
   max_merge?: number,
-  mergers?: ConveyorNode[],
+  starved_mergers?: ConveyorNode[],
 ): ConveyorNode[] {
-  if (mergers != undefined)
+  if (starved_mergers != undefined)
     // Idea is to eventually consider which leaves to group for targets
     // and which to send back to mergers, all in one step.
-    leaf_nodes = basic_factorized_split_finisher(mergers, leaf_nodes)
+    leaf_nodes = basic_factorized_split_finisher(starved_mergers, leaf_nodes)
   return smart_merge(leaf_nodes, targets, max_merge)
 }
 
-/** Remove Bottlenecks */
+/**
+ * Step 4 - Remove Bottlenecks
+ *
+ * @param threshold - Threshold to detect bottlenecks. `null` skips, `undefined` == auto.
+ * @param root_nodes - Roots of graph to work on
+ *
+ * @see find_loopback_bottlenecks
+ * @see replace_loopback_bottleneck
+ */
 export function step4(
   threshold?: Decimal,
   ...root_nodes: ConveyorNode[]
@@ -118,11 +165,27 @@ export function step4(
   }
 }
 
-/** Polish Graph */
+/**
+ * Step 5 - Polish Graph
+ *
+ * @param root_nodes - Roots of graph to work on
+ * @see clean_up_graph
+ */
 export function step5(...root_nodes: ConveyorNode[]): void {
   clean_up_graph(root_nodes)
 }
 
+/**
+ * Creates a graph splitting each of `into` into `into[i]` even parts
+ * @param into - Targets
+ * @param max_split - Maximum number of belts that a single splitter can split into
+ * @param bottleneck_threshold - Highest allowed items / minute on an edge
+ *
+ * @see step1
+ * @see step2
+ * @see step4
+ * @see step5
+ */
 export function main_split(
   into: Decimal[],
   max_split?: number,
@@ -151,6 +214,11 @@ export function main_split(
  * @param max_split - Maximum number of belts that a single splitter can split into
  * @param max_merge - Maximum number of belts that a single merger can merge from
  * @param bottleneck_threshold - Threshold to use alternate loop-back belt layout
+ *
+ * @see step1
+ * @see step2
+ * @see step4
+ * @see step5
  */
 export function main(
   into: Decimal[],
@@ -181,6 +249,8 @@ export function main(
  * @param max_split - Maximum number of belts that a single splitter can split into
  * @param max_merge - Maximum number of belts that a single merger can merge from
  * @param bottleneck_threshold - Threshold to use alternate loop-back belt layout
+ *
+ * @see main
  */
 export function main_find_best(
   into: Decimal[],
@@ -224,18 +294,19 @@ export function main_find_best(
  * Splits `root_node` into `out_amount` nodes
  * @param root_node
  * @param out_amount
- * @param reverse_primes - Split bigger factors first
- * @param max_split - Largest allowed splitter
+ * @param smaller_first - Split smaller factors first
+ * @param max_split - Maximum number of belts that a single splitter can split into
  * @param merge_level - Lowest depth to apply mergers. Negative to ignore
  * @returns Resulting leaf nodes
+ *
  * @see basic_factorized_split_finisher
  */
 export function factorized_split(
   root_node: ConveyorNode,
   out_amount: Decimal,
-  reverse_primes: boolean = false,
+  smaller_first?: boolean,
   max_split: number = 3,
-  merge_level: number = undefined,
+  merge_level?: number,
 ): LeafsAndMergers {
   if (out_amount.lessThanOrEqualTo(max_split)) {
     return {
@@ -245,7 +316,7 @@ export function factorized_split(
   }
 
   const splittable = find_next_multiple(root_node.holding, max_split)
-  const splittable_factors = prime_factorization(splittable, !reverse_primes)
+  const splittable_factors = prime_factorization(splittable, smaller_first)
   const total_loops = splittable.minus(out_amount)
 
   if (total_loops.equals(0))
@@ -265,7 +336,7 @@ export function factorized_split(
     const loops_factors = prime_factorization(loops_)
 
     if (
-      (merge_level != undefined && merge_level <= level) ||
+      (merge_level != undefined && merge_level >= 0 && merge_level <= level) ||
       !loops_factors.some((factor) => factor.equals(splits[0]))
     ) {
       // ToDo: Avoid bottleneck
@@ -309,6 +380,7 @@ export function factorized_split(
  * @param starved_mergers - Mergers to finish
  * @param leaf_nodes - Leaf nodes to take from
  * @returns Remaining leaf nodes
+ *
  * @see factorized_split
  * @see even_split
  */

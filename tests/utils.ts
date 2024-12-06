@@ -40,7 +40,7 @@ export function map_decimal(number: number) {
   return new Decimal(number)
 }
 export function map_to_decimals(numbers: number[]) {
-  return numbers.map(map_decimal)
+  return numbers?.map(map_decimal)
 }
 
 export function _map_link(link: {

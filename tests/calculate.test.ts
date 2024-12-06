@@ -6,9 +6,20 @@ import {
   factorized_split,
   basic_factorized_split_finisher,
   step1,
+  step0,
+  step2,
 } from "../src/calculate"
-import { ConveyorNode } from "../src/ConveyorNode"
-import { get_leaves, is_legal_graph, map_to_decimals } from "./utils"
+import {
+  ConveyorNode,
+  smart_merge,
+  split_by_factors,
+} from "../src/ConveyorNode"
+import {
+  get_leaves,
+  is_legal_graph,
+  map_to_decimals,
+  to_check_able,
+} from "./utils"
 
 /* Sanity Check
   `Set(Decimal[])` won't remove duplicate decimals
@@ -28,7 +39,43 @@ test("Decimal Sets", () => {
 })
 
 describe("Steps", () => {
-  describe.todo("Step 0")
+  describe("Step 0", () => {
+    test.each([
+      [[60], [30, 15, 15], [4], [2, 1, 1]],
+      [
+        [2, 1],
+        [0.5, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25],
+        [8, 4],
+        [2, 2, 2, 2, 2, 1, 1],
+      ],
+      [
+        [0.5, 0.5],
+        [0.75, 0.25],
+        [2, 2],
+        [3, 1],
+      ],
+    ])(
+      "%o, %o -> %o, %o",
+      (
+        arg_targets: number[],
+        arg_sources: number[],
+        expected_targets: number[],
+        expected_sources: number[],
+      ) => {
+        const { targets: actual_targets, sources: actual_sources } = step0(
+          map_to_decimals(arg_targets),
+          map_to_decimals(arg_sources),
+        )
+        expect(actual_targets.length).toEqual(arg_targets.length)
+        expect(actual_targets).toEqual(map_to_decimals(expected_targets))
+
+        expect(actual_sources.length).toBe(
+          arg_sources != undefined ? arg_sources.length : 1,
+        )
+        expect(actual_sources).toEqual(map_to_decimals(expected_sources))
+      },
+    )
+  })
   describe("Step 1", () => {
     test.each([
       [[60, 30, 30]],
@@ -43,10 +90,73 @@ describe("Steps", () => {
       root_nodes.forEach((node, i) => expect(node.holding).toEqual(sources[i]))
     })
   })
-  describe.todo("Step 2")
-  describe.todo("Step 3")
-  describe.todo("Step 4")
-  describe.todo("Step 5")
+  describe("Step 2", () => {
+    // Copied from ConveyorNode.test for Splitting
+    test.each([2, 3, 4, 5, 6, 7, 8, 9, 13, 15, 32, 60])(
+      "%i",
+      (amount: number) => {
+        let root_node = new ConveyorNode(new Decimal(amount))
+        let spacer = new ConveyorNode()
+        root_node.link_to(spacer)
+        step2([spacer], [new Decimal(amount)])
+        expect(is_legal_graph(root_node)).toBeTruthy()
+        let leaves = get_leaves(root_node)
+        expect(leaves.length).toBe(amount)
+        expect(!leaves.some((node) => !node.holding.equals(1))).toBeTruthy()
+      },
+    )
+  })
+  describe("Step 3", () => {
+    // Copied from ConveyorNode.test for smart_merge
+    describe.each([
+      [[2], [[1, 1], [2]]],
+      [
+        [3],
+        [
+          [1, 1, 1],
+          [1, 2],
+          [2, 1],
+        ],
+      ],
+      [
+        [2, 2],
+        [
+          [1, 1, 1, 1],
+          [1, 1, 2],
+          [1, 2, 1],
+          [2, 1, 1],
+          [2, 2],
+          [1, 3],
+          [3, 1],
+        ],
+      ],
+      [[2, 3], [[1, 1, 1, 1, 1, 1]]],
+    ])("%o => %o", (splits: number[], into: number[][]) => {
+      const splits_d = splits.map((n) => new Decimal(n))
+      const into_d = into.map((na: number[]) =>
+        na.map((n: number) => new Decimal(n)),
+      )
+      // return
+      describe.each([into_d])("Into", (_into: Decimal[]) => {
+        test.each([2, 3, 4, 5, 7])("Merge %d", (max_merge: number) => {
+          let root_node = new ConveyorNode(Decimal.sum(..._into))
+          let spacer_node = new ConveyorNode()
+          root_node.link_to(spacer_node)
+          let split_nodes = split_by_factors(spacer_node, splits_d)
+          let end_nodes = smart_merge(split_nodes, _into, max_merge)
+          expect(is_legal_graph(root_node)).toBeTruthy()
+          expect(to_check_able(get_leaves(root_node))).toEqual(
+            to_check_able(end_nodes),
+          )
+          expect(
+            new Set(get_leaves(root_node).map((node) => node.holding)),
+          ).toEqual(new Set(_into))
+        })
+      })
+    })
+  })
+  // describe.todo("Step 4") // Deferring to ConveyorNode.test Loop Bottlenecks tests
+  // describe.todo("Step 5") // ToDo: Defer to ConveyorNode.test Clean Up Graph
 })
 
 describe("Ratio", () => {
