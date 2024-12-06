@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import Decimal from "decimal.js"
 import { computed, ref } from "vue"
-import BeltBottlenecks from "./components/graphInputs/BeltBottlenecks.vue"
+import SplitOptions from "./components/graphInputs/SplitOptions.vue"
 import CalculateButton from "./components/graphInputs/CalculateButton.vue"
 import InputList from "./components/graphInputs/InputList.vue"
 import GraphView from "./components/graphOutputs/GraphView.vue"
@@ -12,6 +12,8 @@ import { countMultisetPermutations } from "./math.ts"
 const inputs = ref<Decimal[]>([new Decimal(60), new Decimal(-1)])
 const outputs = ref<Decimal[]>([30, -1, 15, 15, -1].map((e) => new Decimal(e)))
 const bottleneck_threshold = ref<Decimal>(undefined)
+const merge_level = ref<number>(undefined)
+const smaller_first = ref<boolean>(true)
 const graph = ref<ConveyorNode[]>(null)
 const calculating = ref<boolean>(false)
 let worker = new Worker(new URL("./workers/splitRatio.ts", import.meta.url))
@@ -44,6 +46,8 @@ function calculate() {
     max_merge: 3,
     ratio_perms: try_perms.value,
     bottleneck_threshold: bottleneck_threshold.value?.toNumber(),
+    merge_level: merge_level.value,
+    smaller_first: smaller_first.value,
   }
   // console.debug(message)
   worker.postMessage(message)
@@ -84,9 +88,11 @@ const try_perms = ref(false)
       <InputList label="Sources" v-model="inputs" />
       <InputList label="Targets" v-model="outputs" />
     </div>
-    <BeltBottlenecks
+    <SplitOptions
       :inputs="[inputs, outputs]"
-      v-model="bottleneck_threshold"
+      v-model:belt_limit="bottleneck_threshold"
+      v-model:merge_level="merge_level"
+      v-model:smaller_first="smaller_first"
     />
     <ToggleButton v-model="try_perms">
       Calculate all ({{ num_perms.toNumber().toFixed() }}) permutations and show

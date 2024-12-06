@@ -98,10 +98,16 @@ describe("Steps", () => {
         let root_node = new ConveyorNode(new Decimal(amount))
         let spacer = new ConveyorNode()
         root_node.link_to(spacer)
-        step2([spacer], [new Decimal(amount)])
+        const result = step2([spacer], [new Decimal(amount)])
         expect(is_legal_graph(root_node)).toBeTruthy()
+        const starved_sum = Decimal.sum(
+          ...result.starved_mergers.map((node) => node.holding),
+          0,
+        ).toNumber()
         let leaves = get_leaves(root_node)
-        expect(leaves.length).toBe(amount)
+        expect(to_check_able(result.leaf_nodes)).toEqual(to_check_able(leaves))
+        expect(starved_sum).toBeLessThanOrEqual(0)
+        expect(result.leaf_nodes.length + starved_sum).toBe(amount)
         expect(!leaves.some((node) => !node.holding.equals(1))).toBeTruthy()
       },
     )

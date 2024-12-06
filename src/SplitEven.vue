@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import Decimal from "decimal.js"
 import { ref } from "vue"
-import BeltBottlenecks from "./components/graphInputs/BeltBottlenecks.vue"
+import SplitOptions from "./components/graphInputs/SplitOptions.vue"
 import CalculateButton from "./components/graphInputs/CalculateButton.vue"
 import InputList from "./components/graphInputs/InputList.vue"
 import GraphView from "./components/graphOutputs/GraphView.vue"
@@ -9,6 +9,8 @@ import { ConveyorNode, deserialize } from "./ConveyorNode"
 
 const inputs = ref<Decimal[]>([new Decimal(3), new Decimal(-1)])
 const bottleneck_threshold = ref<Decimal>(undefined)
+const merge_level = ref<number>(undefined)
+const smaller_first = ref<boolean>(true)
 const graph = ref<ConveyorNode[]>(null)
 const calculating = ref<boolean>(false)
 let worker = new Worker(new URL("./workers/splitEven.ts", import.meta.url))
@@ -23,7 +25,9 @@ function calculate() {
   const message = {
     into: filtered_inputs.map((e) => e.toNumber()),
     max_split: 3,
-    bottleneck_threshold: bottleneck_threshold.value,
+    bottleneck_threshold: bottleneck_threshold.value?.toNumber(),
+    merge_level: merge_level.value,
+    smaller_first: smaller_first.value,
   }
   worker.postMessage(message)
 }
@@ -44,7 +48,12 @@ function worker_on_message(e: MessageEvent) {
 <template>
   <div class="space-y-2">
     <InputList :decimal_places="0" label="Sources" v-model="inputs" />
-    <BeltBottlenecks :inputs="[inputs]" v-model="bottleneck_threshold" />
+    <SplitOptions
+      :inputs="[inputs]"
+      v-model:belt_limit="bottleneck_threshold"
+      v-model:merge_level="merge_level"
+      v-model:smaller_first="smaller_first"
+    />
     <CalculateButton
       :working="calculating"
       @abort="abort()"

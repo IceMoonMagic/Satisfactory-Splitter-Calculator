@@ -9,7 +9,7 @@ const props = defineProps({ flip: Boolean })
   <button
     :class="flip ? 'flex-row-reverse' : checked"
     @click="checked = !checked"
-    class="inline-flex items-end gap-2"
+    class="inline-flex items-end gap-2 p-2"
   >
     <slot />
     <CheckCircleIcon class="inline size-5 text-green" v-if="checked" />

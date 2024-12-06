@@ -107,13 +107,13 @@ export function step2(
       leaf_nodes.push(spacer_node)
       continue
     }
-    //* [Toggle]
+    /* [Toggle]
     leaf_nodes.push(...even_split(spacer_node, count.toNumber(), max_split))
     /*/
     const result = factorized_split(
       spacer_node,
       count,
-      !smaller_splits_first,
+      smaller_splits_first,
       max_split,
       merge_level,
     )
@@ -155,7 +155,7 @@ export function step3(
  * @see replace_loopback_bottleneck
  */
 export function step4(
-  threshold?: Decimal,
+  threshold: Decimal = null,
   ...root_nodes: ConveyorNode[]
 ): void {
   if (threshold === null) return
@@ -180,6 +180,8 @@ export function step5(...root_nodes: ConveyorNode[]): void {
  * @param into - Targets
  * @param max_split - Maximum number of belts that a single splitter can split into
  * @param bottleneck_threshold - Highest allowed items / minute on an edge
+ * @param smaller_splits_first - Split by smaller factors first
+ * @param merge_level - Lowest depth to apply mergers
  *
  * @see step1
  * @see step2
@@ -190,14 +192,16 @@ export function main_split(
   into: Decimal[],
   max_split?: number,
   bottleneck_threshold?: Decimal,
+  smaller_splits_first?: boolean,
+  merge_level?: number,
 ): ConveyorNode[] {
   const root_nodes = step1(into)
   const { leaf_nodes, starved_mergers } = step2(
     root_nodes,
     into,
     max_split,
-    undefined,
-    undefined,
+    smaller_splits_first,
+    merge_level,
   )
   if (starved_mergers.length > 0)
     basic_factorized_split_finisher(starved_mergers, leaf_nodes)
@@ -214,6 +218,8 @@ export function main_split(
  * @param max_split - Maximum number of belts that a single splitter can split into
  * @param max_merge - Maximum number of belts that a single merger can merge from
  * @param bottleneck_threshold - Threshold to use alternate loop-back belt layout
+ * @param smaller_splits_first - Split by smaller factors first
+ * @param merge_level - Lowest depth to apply mergers
  *
  * @see step1
  * @see step2
@@ -226,6 +232,8 @@ export function main(
   max_split?: number,
   max_merge?: number,
   bottleneck_threshold?: Decimal,
+  smaller_splits_first?: boolean,
+  merge_level?: number,
 ): ConveyorNode[] {
   const { sources, targets } = step0(into, from)
   const root_nodes = step1(from)
@@ -233,8 +241,8 @@ export function main(
     root_nodes,
     sources,
     max_split,
-    undefined,
-    undefined,
+    smaller_splits_first,
+    merge_level,
   )
   step3(leaf_nodes, targets, max_merge, starved_mergers)
   step4(bottleneck_threshold, ...root_nodes)
@@ -249,6 +257,8 @@ export function main(
  * @param max_split - Maximum number of belts that a single splitter can split into
  * @param max_merge - Maximum number of belts that a single merger can merge from
  * @param bottleneck_threshold - Threshold to use alternate loop-back belt layout
+ * @param smaller_splits_first - Split by smaller factors first
+ * @param merge_level - Lowest depth to apply mergers
  *
  * @see main
  */
@@ -258,6 +268,8 @@ export function main_find_best(
   max_split?: number,
   max_merge?: number,
   bottleneck_threshold?: Decimal,
+  smaller_splits_first?: boolean,
+  merge_level?: number,
 ): ConveyorNode[] {
   const num_perms = countMultisetPermutations(into).mul(
     countMultisetPermutations(from),
@@ -278,6 +290,8 @@ export function main_find_best(
         max_split,
         max_merge,
         bottleneck_threshold,
+        smaller_splits_first,
+        merge_level,
       )
       const edges_and_nodes = find_edges_and_nodes(...root_nodes)
       const lines = edges_and_nodes.edges.length + edges_and_nodes.nodes.length
@@ -296,7 +310,7 @@ export function main_find_best(
  * @param out_amount
  * @param smaller_first - Split smaller factors first
  * @param max_split - Maximum number of belts that a single splitter can split into
- * @param merge_level - Lowest depth to apply mergers. Negative to ignore
+ * @param merge_level - Lowest depth to apply mergers. Negative / Undefined to ignore
  * @returns Resulting leaf nodes
  *
  * @see basic_factorized_split_finisher

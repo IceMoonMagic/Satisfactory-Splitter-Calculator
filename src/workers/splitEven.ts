@@ -9,11 +9,14 @@ onmessage = (e: MessageEvent) => {
     e.data.bottleneck_threshold != undefined
       ? new Decimal(e.data.bottleneck_threshold)
       : undefined
-  console.debug(e.data, { into, max_split, bottleneck_threshold })
+  const merge_level = e.data.merge_level
+  const smaller_first = e.data.smaller_first
   const graph: ConveyorNode[] = main_split(
     into,
     max_split,
     bottleneck_threshold,
+    smaller_first,
+    merge_level,
   )
 
   const keys = serialize(...graph)
