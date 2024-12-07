@@ -1,8 +1,13 @@
-<script setup lang="ts">
-import { computed, ref } from 'vue'
-import { ConveyorNode, NODE_TYPES, findEdgesAndNodes, findLoopBackBottlenecks } from '../../ConveyorNode.ts'
+<script lang="ts" setup>
 import { instance } from "@viz-js/viz"
-import GraphExport from './GraphExport.vue';
+import { computed, ref } from "vue"
+import {
+  ConveyorNode,
+  find_edges_and_nodes,
+  find_loopback_bottlenecks,
+  NodeTypes,
+} from "../../ConveyorNode.ts"
+import GraphExport from "./GraphExport.vue"
 
 const props = defineProps({
   graph: Array<ConveyorNode>,
@@ -13,21 +18,22 @@ const as_dot = computed(() => {
   if (props.graph == null) {
     return ""
   }
-  const edgesAndNodes = findEdgesAndNodes(...props.graph)
+  const edgesAndNodes = find_edges_and_nodes(...props.graph)
   let output = "digraph G {\n"
   for (let node of edgesAndNodes.nodes) {
-    let label: string = node.sum_outs.toString(), shape: string = ""
+    let label: string = node.sum_outs.toString(),
+      shape: string = ""
     switch (node.node_type) {
-      case NODE_TYPES.Source:
+      case NodeTypes.Source:
         shape = "house"
         break
-      case NODE_TYPES.Splitter:
+      case NodeTypes.Splitter:
         shape = "diamond"
         break
-      case NODE_TYPES.Merger:
+      case NodeTypes.Merger:
         shape = "square"
         break
-      case NODE_TYPES.Destination:
+      case NodeTypes.Destination:
         shape = "invhouse"
         label = node.sum_ins.toString()
         break
@@ -36,7 +42,7 @@ const as_dot = computed(() => {
     }
     output += `\t${node.id} [label="${label}" shape="${shape}"];\n`
   }
-  const bottlenecks = findLoopBackBottlenecks(props.graph)
+  const bottlenecks = find_loopback_bottlenecks(props.graph)
   for (let edge of edgesAndNodes.edges) {
     output += `\t${edge.src.id} -> ${edge.dst.id} [label="${edge.carrying}"`
     if (props.bottleneck && bottlenecks.includes(edge)) {
@@ -45,11 +51,11 @@ const as_dot = computed(() => {
     output += "];\n"
   }
   output += "}"
-  instance().then(viz => {
+  instance().then((viz) => {
     graphviz_svg.value = viz.renderSVGElement(output)
-    graphviz_svg.value.style.height = 'unset'
+    graphviz_svg.value.style.height = "unset"
     const given_width = graphviz_svg.value.width.baseVal.valueAsString
-    graphviz_svg.value.style['max-width'] = `min(${given_width}, 100%)`
+    graphviz_svg.value.style["max-width"] = `min(${given_width}, 100%)`
   })
   return output
 })
@@ -57,19 +63,32 @@ const as_dot = computed(() => {
 const graphviz_svg = ref<SVGSVGElement>(null)
 
 const link = computed(() => {
-  const GRAPHVIZ_URL = 'https://dreampuf.github.io/GraphvizOnline/#'
+  const GRAPHVIZ_URL = "https://dreampuf.github.io/GraphvizOnline/#"
   return as_dot.value ? GRAPHVIZ_URL + encodeURI(as_dot.value) : ""
 })
 </script>
 
 <template>
   <!-- Use https://prismjs.com/ for highlighting  -->
-  <GraphExport :text="as_dot" :svg="graphviz_svg" :link="link" mime="text/vnd.graphviz" filename="SplitResult.dot" />
-  <div v-html="graphviz_svg.outerHTML" v-if="graphviz_svg !== null"
-    class="h-fit max-w-fill rounded-lg content-center bg-white [&>svg]:m-auto overflow-hidden" />
+  <GraphExport
+    :link="link"
+    :svg="graphviz_svg"
+    :text="as_dot"
+    filename="SplitResult.dot"
+    mime="text/vnd.graphviz"
+  />
+  <div
+    class="max-w-fill h-fit content-center overflow-hidden rounded-lg bg-white [&>svg]:m-auto"
+    v-html="graphviz_svg.outerHTML"
+    v-if="graphviz_svg !== null"
+  />
   <details>
     <summary>Text Output</summary>
-    <textarea readonly :rows="as_dot.split(/\n/).length"
-      class="font-mono rounded-lg p-2 w-full whitespace-pre">{{ as_dot }}</textarea>
+    <textarea
+      :rows="as_dot.split(/\n/).length"
+      class="w-full whitespace-pre rounded-lg p-2 font-mono"
+      readonly
+      >{{ as_dot }}</textarea
+    >
   </details>
 </template>

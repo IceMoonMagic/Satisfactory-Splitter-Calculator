@@ -1,32 +1,41 @@
-<script setup lang="ts">
-import { Decimal } from 'decimal.js'
-import { computed, ref, watch } from 'vue'
+<script lang="ts" setup>
+import { Fraction } from "fraction.js"
+import { computed, ref, watch } from "vue"
+import ToggleButton from "./ToggleButton.vue"
 
 // Input Values
 const input_clock_per = ref(100)
 const input_clock_dec = ref(1)
 const input_machines = ref(1)
-const auto_machines = ref(false)
+const auto_machines = ref(true)
 
 // Compute Result
 const result = computed(() => {
-  const desired_clock_per = new Decimal(input_clock_per.value)
+  const desired_clock_per = new Fraction(input_clock_per.value)
   let result_machines = -1
   // "Base Case": Clock Per < 0.1
-  for (let count = input_machines.value; desired_clock_per.div(count).gte(0.1); count++) {
+  for (
+    let count = input_machines.value;
+    desired_clock_per.div(count).gte(0.1);
+    count++
+  ) {
     // Take first result with no more than four decimal places (Satisfactory Precision)
-    if (desired_clock_per.div(count).toDecimalPlaces(4).mul(count).eq(desired_clock_per)){
+    if (
+      desired_clock_per.div(count).round(4).mul(count).equals(desired_clock_per)
+    ) {
       result_machines = count
       break
     }
   }
-  if (result_machines === -1) {return {clock: '-1', machines: '-1'}}
-  
-  const result_clock_per = new Decimal(desired_clock_per).div(result_machines)
+  if (result_machines === -1) {
+    return { clock: "-1", machines: "-1" }
+  }
+
+  const result_clock_per = new Fraction(desired_clock_per).div(result_machines)
   return {
     clock_dec: result_clock_per.div(100),
-    clock_per: result_clock_per, 
-    machines: result_machines
+    clock_per: result_clock_per,
+    machines: result_machines,
   }
 })
 
@@ -36,60 +45,78 @@ function auto_set_machines() {
   }
 }
 
-// Enforce decimal places and sync values 
+// Enforce decimal places and sync values
 watch(input_clock_dec, (updated) => {
-  if (!updated) {return}
-  const fixed_updated = new Decimal(updated).toDecimalPlaces(6)
-  input_clock_dec.value = fixed_updated.toNumber()
-  input_clock_per.value = fixed_updated.mul(100).toNumber()
+  if (!updated) {
+    return
+  }
+  const fixed_updated = new Fraction(updated).round(6)
+  input_clock_dec.value = fixed_updated.valueOf()
+  input_clock_per.value = fixed_updated.mul(100).valueOf()
   auto_set_machines()
 })
 watch(input_clock_per, (updated) => {
-  if (!updated) {return}
-  const fixed_updated = new Decimal(updated).toDecimalPlaces(4)
-  input_clock_per.value = fixed_updated.toNumber()
-  input_clock_dec.value = fixed_updated.div(100).toNumber()
+  if (!updated) {
+    return
+  }
+  const fixed_updated = new Fraction(updated).round(4)
+  input_clock_per.value = fixed_updated.valueOf()
+  input_clock_dec.value = fixed_updated.div(100).valueOf()
   auto_set_machines()
 })
 watch(auto_machines, auto_set_machines)
-
 </script>
 <template>
-  <div class="space-y-2 outline outline-lavender outline-1 p-2 rounded-lg w-full">
-    <div class="flex flex-wrap sm:flex-nowrap gap-2">
+  <div
+    class="w-full space-y-2 rounded-lg p-2 outline outline-1 outline-lavender"
+  >
+    <div class="flex flex-wrap sm:flex-nowrap">
       <div class="w-full">
-        <label>Clock Speed (as decimal)</label>
-        <input v-model="input_clock_dec" min="0" type="number" class="rounded-lg p-2 w-full">
+        <label> Clock Speed (as decimal) </label>
+        <input
+          class="w-full rounded-lg p-2"
+          min="0"
+          type="number"
+          v-model="input_clock_dec"
+        />
       </div>
       <div class="w-full">
-        <label>Clock Speed (as percentage)</label>
-        <input v-model="input_clock_per" min="0" type="number" class="rounded-lg p-2 w-full">
+        <label> Clock Speed (as percentage) </label>
+        <input
+          class="w-full rounded-lg p-2"
+          min="0"
+          type="number"
+          v-model="input_clock_per"
+        />
       </div>
     </div>
     <div>
-      <div class="flex flex-wrap">
-        <label>Minimum Machines</label>
-        <div class="space-x-2 w-full flex">
-          <input v-model="input_machines" min="1" type="number" 
-          class="rounded-lg p-2 w-full"
-          :disabled="auto_machines">
-          <div class="relative group" @click="auto_machines = !auto_machines">
-            <label>Auto</label>
-            <input type="checkbox" v-model="auto_machines">
-            <div class="absolute hidden group-hover:inline top-full -right-full 
-              p-2 mx-4 my-2 sm:min-w-max rounded-lg bg-overlay0 
-              outline outline-1 outline-lavender"
-            >Set Min Machines to Decimal Clock Speed rounded up.
-            </div>
+      <div class="flex flex-wrap justify-center">
+        <label> Minimum Machines </label>
+        <div class="flex w-full">
+          <input
+            :disabled="auto_machines"
+            class="w-full"
+            min="1"
+            type="number"
+            v-model="input_machines"
+          />
+          <div class="group relative">
+            <ToggleButton
+              title="Set Min Machines to Decimal Clock Speed rounded up."
+              v-model="auto_machines"
+            >
+              Auto
+            </ToggleButton>
           </div>
         </div>
       </div>
     </div>
     <p>
-      <code class=" bg-surface0 p-1 rounded-lg">{{ result.machines }}</code> 
-      machine{{ result.machines !== 1 ? 's' : '' }} at 
-      <code class=" bg-surface0 p-1 rounded-lg">{{ result.clock_dec }}</code>
-      (<code class=" bg-surface0 p-1 rounded-lg">{{ result.clock_per }}%</code>) clock speed.
+      <code>{{ result.machines }}</code>
+      machine{{ result.machines !== 1 ? "s" : "" }} at
+      <code>{{ result.clock_dec }}</code>
+      (<code>{{ result.clock_per }}%</code>) clock speed.
     </p>
   </div>
 </template>

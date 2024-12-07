@@ -1,25 +1,42 @@
-<script setup lang="ts">
-import { ref } from 'vue';
-import { ConveyorNode } from '../../ConveyorNode.ts'
-import GraphGraphviz from './GraphGraphviz.vue';
-import GraphMermaid from './GraphMermaid.vue'
+<script lang="ts" setup>
+import { defineAsyncComponent, ref } from "vue"
+import { ConveyorNode } from "../../ConveyorNode.ts"
+import ToggleButton from "../ToggleButton.vue"
+
+const GraphGraphviz = defineAsyncComponent(() => import("./GraphGraphviz.vue"))
+const GraphMermaid = defineAsyncComponent(() => import("./GraphMermaid.vue"))
 
 const props = defineProps({
   graph: Array<ConveyorNode>,
 })
 
-const renderer = ref('GraphViz')
+const renderer = ref("GraphViz")
 const highlight_bottleneck = ref(false)
 </script>
 
 <template>
-  <label for="select_graph">Choose Graph Renderer: </label>
-  <select name="select_graph" v-model="renderer" class="p-2 rounded-lg">
+  <label for="select_graph"> Choose Graph Renderer: </label>
+  <select class="rounded-lg p-2" name="select_graph" v-model="renderer">
     <option>GraphViz</option>
     <option>Mermaid</option>
   </select>
-  <label for="highlight_bottleneck" class="ml-4 mr-2">Highlight Potential Bottlenecks?</label>
-  <input type="checkbox" name="highlight_bottleneck" v-model="highlight_bottleneck" />
-  <GraphGraphviz :graph="props.graph" :bottleneck="highlight_bottleneck" v-if="renderer === 'GraphViz'" />
-  <GraphMermaid :graph="props.graph" :bottleneck="highlight_bottleneck" v-else-if="renderer === 'Mermaid'" />
+  <ToggleButton
+    class="m-2"
+    title="Edges that carry more than the root supplies"
+    v-model="highlight_bottleneck"
+  >
+    Highlight Potential Bottlenecks?
+  </ToggleButton>
+  <div v-if="graph != undefined">
+    <GraphGraphviz
+      :bottleneck="highlight_bottleneck"
+      :graph="props.graph"
+      v-if="renderer === 'GraphViz'"
+    />
+    <GraphMermaid
+      :bottleneck="highlight_bottleneck"
+      :graph="props.graph"
+      v-else-if="renderer === 'Mermaid'"
+    />
+  </div>
 </template>
