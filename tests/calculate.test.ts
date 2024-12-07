@@ -170,6 +170,7 @@ describe("Ratio", () => {
   test.each([
     [[60], [30, 15, 15]],
     [[525, 525, 525, 525],[1050, 1050]], // Issue #8
+    [[75], [15, 15, 15, 15, 15]]
   ])("%o => %o", (sources: number[], targets: number[]) => {
     const _sources = sources.map((n) => new Decimal(n))
     const _targets = targets.map((n) => new Decimal(n))

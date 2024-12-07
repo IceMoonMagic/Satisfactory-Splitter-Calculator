@@ -329,9 +329,10 @@ export function factorized_split(
     }
   }
 
-  const splittable = find_next_multiple(root_node.holding, max_split)
+  const splittable = find_next_multiple(out_amount, max_split)
   const splittable_factors = prime_factorization(splittable, smaller_first)
   const total_loops = splittable.minus(out_amount)
+  const multiplier = root_node.holding.dividedBy(out_amount)
 
   if (total_loops.equals(0))
     return {
@@ -355,7 +356,7 @@ export function factorized_split(
     ) {
       // ToDo: Avoid bottleneck
       const merger_in = new ConveyorNode()
-      merger_in.link_to(curr_node, loops_)
+      merger_in.link_to(curr_node, loops_.times(multiplier))
       merger_inputs.push(merger_in)
       const spacer = new ConveyorNode()
       curr_node.link_to(spacer)
@@ -402,6 +403,7 @@ export function basic_factorized_split_finisher(
   starved_mergers: ConveyorNode[],
   leaf_nodes: ConveyorNode[],
 ) {
+  const multiplier = leaf_nodes[0].holding
   function _basic_finisher(
     curr_node: ConveyorNode,
     merger: ConveyorNode,
@@ -426,7 +428,7 @@ export function basic_factorized_split_finisher(
     return merge
   }
   for (let mt of starved_mergers) {
-    const target = mt.holding.negated()
+    const target = mt.holding.negated().dividedBy(multiplier)
     const merger = mt.outs[0].dst
     const merge_nodes = _basic_finisher(merger.outs[0].dst, merger, target)
     merge_nodes.forEach((node) =>
