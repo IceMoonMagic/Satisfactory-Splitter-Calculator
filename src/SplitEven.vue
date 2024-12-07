@@ -41,6 +41,7 @@ function abort() {
 }
 
 function worker_on_message(e: MessageEvent) {
+  ConveyorNode.reset_ids()
   graph.value = deserialize(e.data)
   calculating.value = false
 }

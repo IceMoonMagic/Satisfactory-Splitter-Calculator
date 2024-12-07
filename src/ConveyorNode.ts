@@ -49,6 +49,11 @@ export class ConveyorNode {
   private static _ids: WeakMap<ConveyorNode, number> = new WeakMap()
   private static _curr_id: number = 0
 
+  public static reset_ids() {
+    this._ids = new WeakMap()
+    this._curr_id = 0
+  }
+
   constructor(holding: Fraction = new Fraction(0)) {
     this.holding = holding
     this.ins = []

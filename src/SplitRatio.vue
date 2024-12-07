@@ -68,6 +68,9 @@ function worker_on_message(e: MessageEvent) {
     calc_text.value = `${BASE_CALC_TEXT} ${e.data}`
     return
   }
+  // Could alternatively do in `main` and `main_split`,
+  // but then each graph would have to un-proxy the object
+  ConveyorNode.reset_ids()
   graph.value = deserialize(e.data)
   calculating.value = false
 }
