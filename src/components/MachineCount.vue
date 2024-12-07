@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { Decimal } from "decimal.js"
+import { Fraction } from "fraction.js"
 import { computed, ref, watch } from "vue"
 import ToggleButton from "./ToggleButton.vue"
 
@@ -11,7 +11,7 @@ const auto_machines = ref(true)
 
 // Compute Result
 const result = computed(() => {
-  const desired_clock_per = new Decimal(input_clock_per.value)
+  const desired_clock_per = new Fraction(input_clock_per.value)
   let result_machines = -1
   // "Base Case": Clock Per < 0.1
   for (
@@ -21,11 +21,7 @@ const result = computed(() => {
   ) {
     // Take first result with no more than four decimal places (Satisfactory Precision)
     if (
-      desired_clock_per
-        .div(count)
-        .toDecimalPlaces(4)
-        .mul(count)
-        .eq(desired_clock_per)
+      desired_clock_per.div(count).round(4).mul(count).equals(desired_clock_per)
     ) {
       result_machines = count
       break
@@ -35,7 +31,7 @@ const result = computed(() => {
     return { clock: "-1", machines: "-1" }
   }
 
-  const result_clock_per = new Decimal(desired_clock_per).div(result_machines)
+  const result_clock_per = new Fraction(desired_clock_per).div(result_machines)
   return {
     clock_dec: result_clock_per.div(100),
     clock_per: result_clock_per,
@@ -54,18 +50,18 @@ watch(input_clock_dec, (updated) => {
   if (!updated) {
     return
   }
-  const fixed_updated = new Decimal(updated).toDecimalPlaces(6)
-  input_clock_dec.value = fixed_updated.toNumber()
-  input_clock_per.value = fixed_updated.mul(100).toNumber()
+  const fixed_updated = new Fraction(updated).round(6)
+  input_clock_dec.value = fixed_updated.valueOf()
+  input_clock_per.value = fixed_updated.mul(100).valueOf()
   auto_set_machines()
 })
 watch(input_clock_per, (updated) => {
   if (!updated) {
     return
   }
-  const fixed_updated = new Decimal(updated).toDecimalPlaces(4)
-  input_clock_per.value = fixed_updated.toNumber()
-  input_clock_dec.value = fixed_updated.div(100).toNumber()
+  const fixed_updated = new Fraction(updated).round(4)
+  input_clock_per.value = fixed_updated.valueOf()
+  input_clock_dec.value = fixed_updated.div(100).valueOf()
   auto_set_machines()
 })
 watch(auto_machines, auto_set_machines)

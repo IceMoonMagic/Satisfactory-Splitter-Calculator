@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import Decimal from "decimal.js"
+import { Fraction } from "fraction.js"
 import { Id } from "vis-network/declarations/network/modules/components/edges"
 import {
   Color,
@@ -15,6 +15,7 @@ import {
   find_edges_and_nodes,
   NodeTypes,
 } from "../../ConveyorNode.ts"
+import { max, sum } from "../../math.ts"
 import GraphVisAddModal from "./GraphVisAddModal.vue"
 
 const GREEN: Color = {
@@ -137,14 +138,14 @@ onMounted(() => {
     network.setData(data.value)
   }
   addNode(
-    [new Decimal(3)],
-    [1, 1, 1].map((e) => new Decimal(e)),
+    [new Fraction(3)],
+    [1, 1, 1].map((e) => new Fraction(e)),
   )
 })
 
 const addNodeData = ref<Node>(undefined)
 
-function addIns(to: Id, ...ins: (Decimal | string)[]) {
+function addIns(to: Id, ...ins: (Fraction | string)[]) {
   const addedIds = data.value.nodes.add(
     ins.map((value) => {
       return { label: value.toString(), color: RED }
@@ -157,7 +158,7 @@ function addIns(to: Id, ...ins: (Decimal | string)[]) {
   )
 }
 
-function addOuts(from: Id, ...outs: (Decimal | string)[]) {
+function addOuts(from: Id, ...outs: (Fraction | string)[]) {
   const addedIds = data.value.nodes.add(
     outs.map((value) => {
       return { label: value.toString(), color: GREEN }
@@ -170,7 +171,7 @@ function addOuts(from: Id, ...outs: (Decimal | string)[]) {
   )
 }
 
-function addNode(ins: Decimal[], outs: Decimal[]) {
+function addNode(ins: Fraction[], outs: Fraction[]) {
   // let { nd: nodeData, cb: cb } = addModelOpen.value
   let nodeData = (addNodeData.value || { x: 0, y: 0 }) as Node
   if (ins.length + outs.length === 0) {
@@ -179,10 +180,7 @@ function addNode(ins: Decimal[], outs: Decimal[]) {
     nodeData.label = ins[0]?.toString() || outs[0].toString()
     nodeData.shape = "hexagon"
   } else {
-    nodeData.label = Decimal.max(
-      Decimal.sum(...ins),
-      Decimal.sum(...outs),
-    ).toString()
+    nodeData.label = max(sum(...ins), sum(...outs)).toString()
     nodeData.shape = outs.length > 1 ? "diamond" : "square"
   }
   const newNodeId: Id = data.value.nodes.add([nodeData])[0]
@@ -197,7 +195,7 @@ function addEdge(edgeData: Edge, callback: Function) {
   if (fromNode.color != GREEN || toNode.color != RED) {
     return
   }
-  if (!new Decimal(fromNode.label).equals(toNode.label)) {
+  if (!new Fraction(fromNode.label).equals(toNode.label)) {
     return
   }
 

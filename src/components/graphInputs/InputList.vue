@@ -1,32 +1,32 @@
 <script lang="ts" setup>
 import { PlusIcon, TrashIcon } from "@heroicons/vue/16/solid"
-import Decimal from "decimal.js"
+import { Fraction } from "fraction.js"
 import { computed } from "vue"
 
 const props = defineProps({
-  decimal_places: Number || undefined,
+  allow_decimal: Boolean || undefined,
   label: String,
 })
-const inputs = defineModel<Decimal[]>()
+const inputs = defineModel<Fraction[]>()
 
 interface SimplifiedRow {
   index: number
-  input: Decimal
+  input: Fraction
   repeat: number
 }
 
-function addInput(value: Decimal | number = 0) {
-  inputs.value.push(new Decimal(value))
-  inputs.value.push(new Decimal(-1))
+function addInput(value: Fraction | number = 0) {
+  inputs.value.push(new Fraction(value))
+  inputs.value.push(new Fraction(-1))
 }
 
 function updateInput(e: Event, row: SimplifiedRow) {
   if ((e.target as HTMLInputElement).value === "") return
-  const e_value = new Decimal((e.target as HTMLInputElement).value)
-  const fixed_value = e_value.toDecimalPlaces(props.decimal_places)
+  const e_value = new Fraction((e.target as HTMLInputElement).value)
+  const fixed_value = props.allow_decimal == false ? e_value.round() : e_value
 
   // Only fix if values differ, as attempting to add a decimal place did not work
-  if (props.decimal_places === 0 || !row.input.eq(e_value)) {
+  if (!props.allow_decimal || !row.input.equals(e_value)) {
     for (let index = row.index; index < row.index + row.repeat; index++) {
       inputs.value[index] = fixed_value
     }
@@ -67,7 +67,7 @@ const simplifiedInputs = computed<SimplifiedRow[]>(() => {
     const input = inputs.value[index]
     if (
       simplified.length != 0 &&
-      simplified[simplified.length - 1].input.eq(input)
+      simplified[simplified.length - 1].input.equals(input)
     ) {
       simplified[simplified.length - 1].repeat += 1
     } else {

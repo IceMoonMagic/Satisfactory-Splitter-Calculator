@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import Decimal from "decimal.js"
+import { Fraction } from "fraction.js"
 import { computed, ref } from "vue"
 import SplitOptions from "./components/graphInputs/SplitOptions.vue"
 import CalculateButton from "./components/graphInputs/CalculateButton.vue"
@@ -7,11 +7,13 @@ import InputList from "./components/graphInputs/InputList.vue"
 import GraphView from "./components/graphOutputs/GraphView.vue"
 import ToggleButton from "./components/ToggleButton.vue"
 import { ConveyorNode, deserialize } from "./ConveyorNode"
-import { countMultisetPermutations } from "./math.ts"
+import { countMultisetPermutations, sum } from "./math.ts"
 
-const inputs = ref<Decimal[]>([new Decimal(60), new Decimal(-1)])
-const outputs = ref<Decimal[]>([30, -1, 15, 15, -1].map((e) => new Decimal(e)))
-const bottleneck_threshold = ref<Decimal>(undefined)
+const inputs = ref<Fraction[]>([new Fraction(60), new Fraction(-1)])
+const outputs = ref<Fraction[]>(
+  [30, -1, 15, 15, -1].map((e) => new Fraction(e)),
+)
+const bottleneck_threshold = ref<Fraction>(undefined)
 const merge_level = ref<number>(undefined)
 const smaller_first = ref<boolean>(true)
 const graph = ref<ConveyorNode[]>(null)
@@ -22,10 +24,10 @@ const BASE_CALC_TEXT = "Calculating"
 const calc_text = ref(BASE_CALC_TEXT)
 
 function calculate() {
-  const sum_sources = Decimal.sum(...inputs.value.filter((e) => e.gt(0)), 0)
-  const sum_targets = Decimal.sum(...outputs.value.filter((e) => e.gt(0)), 0)
+  const sum_sources = sum(...inputs.value.filter((e) => e.gt(0)), 0)
+  const sum_targets = sum(...outputs.value.filter((e) => e.gt(0)), 0)
 
-  if (sum_sources.eq(0) && sum_targets.eq(0)) {
+  if (sum_sources.equals(0) && sum_targets.equals(0)) {
     return
   } else if (sum_sources.lt(sum_targets)) {
     const diff = sum_targets.sub(sum_sources)
@@ -40,12 +42,12 @@ function calculate() {
   calc_text.value = BASE_CALC_TEXT
   calculating.value = true
   const message = {
-    into: outputs.value.filter((e) => e.gt(0)).map((e) => e.toNumber()),
-    from: inputs.value.filter((e) => e.gt(0)).map((e) => e.toNumber()),
+    into: outputs.value.filter((e) => e.gt(0)).map((e) => e.valueOf()),
+    from: inputs.value.filter((e) => e.gt(0)).map((e) => e.valueOf()),
     max_split: 3,
     max_merge: 3,
     ratio_perms: try_perms.value,
-    bottleneck_threshold: bottleneck_threshold.value?.toNumber(),
+    bottleneck_threshold: bottleneck_threshold.value?.valueOf(),
     merge_level: merge_level.value,
     smaller_first: smaller_first.value,
   }
@@ -85,8 +87,8 @@ const try_perms = ref(false)
 <template>
   <div class="space-y-2">
     <div class="flex flex-wrap sm:flex-nowrap">
-      <InputList label="Sources" v-model="inputs" />
-      <InputList label="Targets" v-model="outputs" />
+      <InputList :allow_decimal="true" label="Sources" v-model="inputs" />
+      <InputList :allow_decimal="true" label="Targets" v-model="outputs" />
     </div>
     <SplitOptions
       :inputs="[inputs, outputs]"
@@ -98,7 +100,7 @@ const try_perms = ref(false)
       title="Calculate all permutations and return the simplest"
       v-model="try_perms"
     >
-      Try All ({{ num_perms.toNumber().toFixed() }}) Permutations
+      Try All ({{ num_perms.valueOf().toFixed() }}) Permutations
     </ToggleButton>
     <CalculateButton
       :working="calculating"

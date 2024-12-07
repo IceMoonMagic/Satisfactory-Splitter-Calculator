@@ -1,4 +1,4 @@
-import Decimal from "decimal.js"
+import { Fraction } from "fraction.js"
 import { ConveyorNode, find_edges_and_nodes } from "../src/ConveyorNode"
 
 /**
@@ -37,7 +37,7 @@ export function get_leaves(...root_nodes: ConveyorNode[]): ConveyorNode[] {
 }
 
 export function map_decimal(number: number) {
-  return new Decimal(number)
+  return new Fraction(number)
 }
 export function map_to_decimals(numbers: number[]) {
   return numbers?.map(map_decimal)
@@ -45,7 +45,7 @@ export function map_to_decimals(numbers: number[]) {
 
 export function _map_link(link: {
   src: ConveyorNode
-  carrying: Decimal
+  carrying: Fraction
   dst: ConveyorNode
 }) {
   return {

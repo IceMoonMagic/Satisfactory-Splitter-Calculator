@@ -1,18 +1,31 @@
-import Decimal from "decimal.js"
+import { Fraction } from "fraction.js"
 
 type MultiSet = Map<string, number>
 
-function factorial(n: number): Decimal {
-  let fact = new Decimal(1)
+export function sum(...items: Array<number | Fraction>): Fraction {
+  return items.reduce<Fraction>((_sum, item) => _sum.add(item), new Fraction(0))
+}
+
+export function max(...items: Array<number | Fraction>): Fraction {
+  return items.reduce<Fraction>(
+    (_max, item) =>
+      _max == undefined || _max.lt(item) ? new Fraction(item) : _max,
+    undefined,
+  )
+}
+
+function factorial(n: number): Fraction {
+  let fact = new Fraction(1)
   for (let i = 1; i <= n; i++) {
-    fact = fact.times(i)
+    fact = fact.mul(i)
   }
   return fact
 }
 
-function toMultiset(items: Decimal[]): MultiSet {
+function toMultiset(items: Fraction[]): MultiSet {
   return items.reduce<MultiSet>(
-    (set, item) => set.set(item.toJSON(), (set.get(item.toString()) || 0) + 1),
+    (set, item) =>
+      set.set(item.toFraction(), (set.get(item.toString()) || 0) + 1),
     new Map<string, number>(),
   )
 }
@@ -21,23 +34,23 @@ function toMultiset(items: Decimal[]): MultiSet {
  * Counts the unique permutations of `items`
  * @param items
  */
-export function countMultisetPermutations(items: Decimal[]): Decimal {
+export function countMultisetPermutations(items: Fraction[]): Fraction {
   // P = n! / (k1! * k2! * ... * km!)
   let n = factorial(items.length)
-  let k = new Decimal(1)
-  toMultiset(items).forEach((count) => (k = k.times(factorial(count))))
-  return n.dividedBy(k)
+  let k = new Fraction(1)
+  toMultiset(items).forEach((count) => (k = k.mul(factorial(count))))
+  return n.div(k)
 }
 
 /**
  * Generator for all unique permutations of `items`
  * @param items
  */
-export function multisetPermutations(items: Decimal[]): Generator<Decimal[]> {
+export function multisetPermutations(items: Fraction[]): Generator<Fraction[]> {
   return _multisetPermutations(toMultiset(items))
 }
 
-function* _multisetPermutations(items: MultiSet): Generator<Decimal[]> {
+function* _multisetPermutations(items: MultiSet): Generator<Fraction[]> {
   // Edge Case
   if (items == undefined) {
     yield undefined
@@ -45,7 +58,7 @@ function* _multisetPermutations(items: MultiSet): Generator<Decimal[]> {
   // Edge Case | 1 item -> 1 permutation
   else if (items.size == 1) {
     const [item, count] = items.entries().next().value as [string, number]
-    yield Array<Decimal>(count).fill(new Decimal(item))
+    yield Array<Fraction>(count).fill(new Fraction(item))
   }
   // Base Case | All item counts == 0
   else if (
@@ -61,30 +74,24 @@ function* _multisetPermutations(items: MultiSet): Generator<Decimal[]> {
       }
       items.set(item, count - 1) // Probably easier than making new Map
       for (let foo of _multisetPermutations(items)) {
-        yield foo.concat(new Decimal(item))
+        yield foo.concat(new Fraction(item))
       }
       items.set(item, count)
     }
   }
 }
 
-const found_primes: Decimal[] = [new Decimal(2)] // Basic memoization
-function* primes(stopAt?: Decimal | number): Generator<Decimal> {
-  let n: Decimal
+const found_primes: Fraction[] = [new Fraction(2)] // Basic memoization
+function* primes(stopAt?: Fraction | number): Generator<Fraction> {
+  let n: Fraction
   for (n of found_primes) {
-    if (stopAt != undefined && n.greaterThan(stopAt)) {
+    if (stopAt != undefined && n.gt(stopAt)) {
       return
     }
     yield n
   }
-  for (
-    n = n.plus(1);
-    stopAt == undefined || n.lessThanOrEqualTo(stopAt);
-    n = n.plus(1)
-  ) {
-    if (
-      found_primes.find((p) => n.dividedBy(p).mod(1).equals(0)) === undefined
-    ) {
+  for (n = n.add(1); stopAt == undefined || n.lte(stopAt); n = n.add(1)) {
+    if (found_primes.find((p) => n.div(p).mod(1).equals(0)) === undefined) {
       // If not divisible by any other prime
       found_primes.push(n)
       yield n
@@ -92,7 +99,7 @@ function* primes(stopAt?: Decimal | number): Generator<Decimal> {
   }
 }
 
-const found_multiples: Map<number, Decimal[]> = new Map()
+const found_multiples: Map<number, Fraction[]> = new Map()
 
 /**
  * Find the next smallest number with prime factors no bigger than `largest_factor`.
@@ -100,22 +107,22 @@ const found_multiples: Map<number, Decimal[]> = new Map()
  * @param largest_factor
  */
 export function find_next_multiple(
-  start: Decimal,
+  start: Fraction,
   largest_factor: number = 3,
-): Decimal {
+): Fraction {
   if (!found_multiples.has(largest_factor)) {
-    found_multiples.set(largest_factor, [new Decimal(2)])
+    found_multiples.set(largest_factor, [new Fraction(2)])
   }
   let found = found_multiples.get(largest_factor)
   let n = found[found.length - 1]
-  if (n.greaterThanOrEqualTo(start)) {
-    return found.find((p) => p.greaterThanOrEqualTo(start))
+  if (n.gte(start)) {
+    return found.find((p) => p.gte(start))
   }
 
-  while ((n = n.plus(1))) {
-    if (!prime_factorization(n).some((p) => p.greaterThan(largest_factor))) {
+  while ((n = n.add(1))) {
+    if (!prime_factorization(n).some((p) => p.gt(largest_factor))) {
       found.push(n)
-      if (n.greaterThanOrEqualTo(start)) {
+      if (n.gte(start)) {
         return n
       }
     }
@@ -124,11 +131,11 @@ export function find_next_multiple(
   for (let num_factors = 1; ; num_factors += 1) {
     for (let num_twos = num_factors; num_twos >= 0; num_twos--) {
       console.log(num_twos)
-      let val = new Decimal(1)
-        .times(new Decimal(2).toPower(num_twos))
-        .times(new Decimal(3).toPower(num_factors - num_twos))
+      let val = new Fraction(1)
+        .mul(new Fraction(2).toPower(num_twos))
+        .mul(new Fraction(3).toPower(num_factors - num_twos))
 
-      if (val.greaterThanOrEqualTo(start)) {
+      if (val.gte(start)) {
         return val
       }
     }
@@ -141,15 +148,15 @@ export function find_next_multiple(
  * @param smaller_first - return list in ascending order
  */
 export function prime_factorization(
-  n: Decimal,
+  n: Fraction,
   smaller_first: boolean = true,
-): Decimal[] {
-  let factorization: Decimal[] = []
+): Fraction[] {
+  let factorization: Fraction[] = []
   for (let p of primes(n)) {
     for (
-      let quotient = n.dividedBy(p);
+      let quotient = n.div(p);
       quotient.mod(1).equals(0);
-      quotient = quotient.dividedBy(p)
+      quotient = quotient.div(p)
     ) {
       smaller_first ? factorization.push(p) : factorization.unshift(p)
     }
@@ -157,10 +164,10 @@ export function prime_factorization(
   return factorization
 }
 
-export function ratio(targets: Decimal[]): Decimal[] {
-  function greatestCommonDenominator(a: Decimal, b: Decimal): Decimal {
-    let r: Decimal
-    while (a.mod(b).greaterThan(0)) {
+export function ratio(targets: Fraction[]): Fraction[] {
+  function greatestCommonDenominator(a: Fraction, b: Fraction): Fraction {
+    let r: Fraction
+    while (a.mod(b).gt(0)) {
       r = a.mod(b)
       a = b
       b = r
@@ -168,14 +175,17 @@ export function ratio(targets: Decimal[]): Decimal[] {
     return b
   }
 
-  function leastCommonMultiple(a: Decimal, b: Decimal): Decimal {
-    return a.times(b).dividedBy(greatestCommonDenominator(a, b))
+  function leastCommonMultiple(a: Fraction, b: Fraction): Fraction {
+    return a.mul(b).div(greatestCommonDenominator(a, b))
   }
 
-  let numerators: Decimal[] = []
-  let denominators: Decimal[] = []
+  let numerators: Fraction[] = []
+  let denominators: Fraction[] = []
   for (let value of targets) {
-    let [numerator, denominator] = value.toFraction()
+    let [numerator, denominator] = [
+      new Fraction(value.n),
+      new Fraction(value.d),
+    ]
     numerators.push(numerator)
     denominators.push(denominator)
   }
@@ -185,9 +195,9 @@ export function ratio(targets: Decimal[]): Decimal[] {
   )
 
   for (let index in numerators) {
-    let by = lcd.dividedToIntegerBy(denominators[index])
-    numerators[index] = numerators[index].times(by)
-    denominators[index] = denominators[index].times(by)
+    let by = lcd.div(denominators[index])
+    numerators[index] = numerators[index].mul(by)
+    denominators[index] = denominators[index].mul(by)
   }
 
   let gcf = numerators.reduce((_gcd, element) =>
@@ -195,7 +205,7 @@ export function ratio(targets: Decimal[]): Decimal[] {
   )
 
   for (let numerator in numerators) {
-    numerators[numerator] = numerators[numerator].dividedToIntegerBy(gcf)
+    numerators[numerator] = numerators[numerator].div(gcf)
   }
 
   return numerators
@@ -203,8 +213,8 @@ export function ratio(targets: Decimal[]): Decimal[] {
 
 if (import.meta.vitest) {
   const { describe, expect, test } = import.meta.vitest
-  const to_decimals = (...items: (number | Decimal)[]) =>
-    items.map((item) => new Decimal(item))
+  const to_decimals = (...items: (number | Fraction)[]) =>
+    items.map((item) => new Fraction(item))
 
   describe("factorial", () =>
     test.for([
@@ -212,7 +222,7 @@ if (import.meta.vitest) {
       [8, 40_320],
       [13, 6_227_020_800],
     ])("%i -> %i", ([n, result]) =>
-      expect(factorial(n)).toEqual(new Decimal(result)),
+      expect(factorial(n)).toEqual(new Fraction(result)),
     ))
 
   describe("toMultiset", () =>
@@ -239,7 +249,7 @@ if (import.meta.vitest) {
       [[1, 2, 3], 6],
     ])("%o -> %i", (items: number[], result: number) =>
       expect(countMultisetPermutations(to_decimals(...items))).toEqual(
-        new Decimal(result),
+        new Fraction(result),
       ),
     ))
 
@@ -287,8 +297,8 @@ if (import.meta.vitest) {
       [3, [2, 3, 4, 6, 8, 9, 12, 16, 18, 24, 27]],
     ])("%i -> %o", (largest: number, results: number[]) => {
       for (let i = 2; i < results[results.length - 1]; i++) {
-        expect(find_next_multiple(new Decimal(i), largest)).toEqual(
-          new Decimal(results.find((n) => n >= i)),
+        expect(find_next_multiple(new Fraction(i), largest)).toEqual(
+          new Fraction(results.find((n) => n >= i)),
         )
       }
     }))
@@ -306,10 +316,10 @@ if (import.meta.vitest) {
       [16, [2, 2, 2, 2]],
       [36, [2, 2, 3, 3]],
     ])("%i -> %o", (n, factors) => {
-      expect(prime_factorization(new Decimal(n), true)).toEqual(
+      expect(prime_factorization(new Fraction(n), true)).toEqual(
         to_decimals(...factors),
       )
-      expect(prime_factorization(new Decimal(n), false)).toEqual(
+      expect(prime_factorization(new Fraction(n), false)).toEqual(
         to_decimals(...factors.reverse()),
       )
     }))

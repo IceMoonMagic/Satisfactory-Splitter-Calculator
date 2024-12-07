@@ -1,30 +1,31 @@
 <script lang="ts" setup>
 import { InformationCircleIcon } from "@heroicons/vue/16/solid"
-import { Decimal } from "decimal.js"
+import { Fraction } from "fraction.js"
 import { computed, ref, watch } from "vue"
+import { max } from "../../math.ts"
 import ToggleButton from "../ToggleButton.vue"
 
 const belt_speeds = [60, 120, 270, 480, 780, 1200]
 
 /** Takes "Mk.N" and returns belt speed for said Mk. */
 function get_belt_speed(mk: string) {
-  return new Decimal(belt_speeds[Number(mk.split(".")[1]) - 1])
+  return new Fraction(belt_speeds[Number(mk.split(".")[1]) - 1])
 }
 
 const props = defineProps({
-  inputs: Array<Decimal[]>,
+  inputs: Array<Fraction[]>,
 })
 /** The minimum require belt speed to make all sources and targets viable */
 const belt_min = computed(() =>
   props.inputs.reduce(
-    (prev, curr) => Decimal.max(prev, ...(curr ?? [0])),
-    new Decimal(0),
+    (prev, curr) => max(prev, ...(curr ?? [0])),
+    new Fraction(0),
   ),
 )
 /** The selected belt option */
 const belt_name = ref("Off")
 /** The selected / configured belt speed */
-const belt_limit = defineModel<Decimal>("belt_limit", undefined)
+const belt_limit = defineModel<Fraction>("belt_limit", undefined)
 
 /** Updates belt_limit when selecting a different belt_name*/
 watch(belt_name, (updated) => {
@@ -33,7 +34,7 @@ watch(belt_name, (updated) => {
       belt_limit.value = undefined
       break
     case "Custom":
-      belt_limit.value = Decimal.max(belt_limit.value ?? 0, belt_min.value)
+      belt_limit.value = max(belt_limit.value ?? 0, belt_min.value)
       break
     case "Auto":
       belt_limit.value = belt_min.value
@@ -49,7 +50,7 @@ watch(belt_name, (updated) => {
 
 /** Updates belt_limit if a sources / targets gets too big */
 watch(belt_min, (updated, old) => {
-  if (updated.eq(old)) {
+  if (updated.equals(old)) {
     // it seems that updating the model triggers the watch for the props
     // which would cause an infinite loop if the watch then updates the model
     return
@@ -59,7 +60,7 @@ watch(belt_min, (updated, old) => {
     case "Off":
       break
     case "Custom":
-      belt_limit.value = Decimal.max(belt_limit.value, updated)
+      belt_limit.value = max(belt_limit.value, updated)
       break
     case "Auto":
       belt_limit.value = updated
@@ -137,7 +138,7 @@ const smaller_first = defineModel<boolean>("smaller_first", undefined)
       </select>
       <input
         :disabled="belt_name !== 'Custom'"
-        :min="belt_min.toNumber()"
+        :min="belt_min.valueOf()"
         @change="valid_custom"
         class="w-24 rounded-l-none"
         type="number"

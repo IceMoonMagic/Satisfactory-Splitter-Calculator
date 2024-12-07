@@ -1,11 +1,12 @@
-import { Decimal } from "decimal.js"
+import { Fraction } from "fraction.js"
+import { sum } from "./math.ts"
 
 class ConveyorLink {
   public readonly src: ConveyorNode
   public readonly dst: ConveyorNode
-  public readonly carrying: Decimal
+  public readonly carrying: Fraction
 
-  constructor(src: ConveyorNode, dst: ConveyorNode, carrying?: Decimal) {
+  constructor(src: ConveyorNode, dst: ConveyorNode, carrying?: Fraction) {
     if (carrying == undefined) {
       carrying = src.splittable
     }
@@ -14,15 +15,15 @@ class ConveyorLink {
     this.dst = dst
     this.carrying = carrying
 
-    src.holding = src.holding.minus(carrying)
-    dst.holding = dst.holding.plus(carrying)
+    src.holding = src.holding.sub(carrying)
+    dst.holding = dst.holding.add(carrying)
     src.outs.push(this)
     dst.ins.push(this)
   }
 
   public remove_link(): void {
-    this.src.holding = this.src.holding.plus(this.carrying)
-    this.dst.holding = this.dst.holding.minus(this.carrying)
+    this.src.holding = this.src.holding.add(this.carrying)
+    this.dst.holding = this.dst.holding.sub(this.carrying)
     this.src.outs.splice(this.src.outs.indexOf(this), 1)
     this.dst.ins.splice(this.dst.ins.indexOf(this), 1)
   }
@@ -41,24 +42,24 @@ export enum NodeTypes {
 }
 
 export class ConveyorNode {
-  holding: Decimal
+  holding: Fraction
   ins: ConveyorLink[]
   outs: ConveyorLink[]
 
   private static _ids: WeakMap<ConveyorNode, number> = new WeakMap()
   private static _curr_id: number = 0
 
-  constructor(holding: Decimal = new Decimal(0)) {
+  constructor(holding: Fraction = new Fraction(0)) {
     this.holding = holding
     this.ins = []
     this.outs = []
   }
 
-  public link_to(dst: ConveyorNode, carrying?: Decimal) {
+  public link_to(dst: ConveyorNode, carrying?: Fraction) {
     new ConveyorLink(this, dst, carrying)
   }
 
-  public unlink_to(dst: ConveyorNode, carrying?: Decimal) {
+  public unlink_to(dst: ConveyorNode, carrying?: Fraction) {
     this.outs
       .filter((link) => link.dst === dst && link.carrying === carrying)
       .forEach((link) => link.remove_link())
@@ -72,17 +73,17 @@ export class ConveyorNode {
     Array.from(this.ins).forEach((link) => link.remove_link())
   }
 
-  get sum_ins(): Decimal {
-    return Decimal.sum(...this.ins.map((link) => link.carrying), 0)
+  get sum_ins(): Fraction {
+    return sum(...this.ins.map((link) => link.carrying), 0)
   }
 
-  get sum_outs(): Decimal {
-    return Decimal.sum(...this.outs.map((link) => link.carrying), 0)
+  get sum_outs(): Fraction {
+    return sum(...this.outs.map((link) => link.carrying), 0)
   }
 
   /** If all out links are carrying the same amount */
   get does_split_evenly(): boolean {
-    let target: Decimal = this.sum_outs.dividedBy(this.outs.length)
+    let target: Fraction = this.sum_outs.div(this.outs.length)
     return !this.outs.some((link) => !link.carrying.equals(target))
   }
 
@@ -90,7 +91,7 @@ export class ConveyorNode {
    * Returns a carrying amount that would keep `does_split_evenly` true
    * OR `this.holding` if no existing out links.
    */
-  get splittable(): Decimal {
+  get splittable(): Fraction {
     return this.outs.length > 0 ? this.outs[0].carrying : this.holding
   }
 
@@ -99,13 +100,13 @@ export class ConveyorNode {
    * unless `this.holding == 0`
    * or an out link exists.
    */
-  public split_into(r: Decimal | number): Decimal {
+  public split_into(r: Fraction | number): Fraction {
     if (this.holding.equals(0)) {
       return this.holding
     } else if (this.outs.length > 0) {
       return this.splittable
     }
-    return this.holding.dividedBy(r)
+    return this.holding.div(r)
   }
 
   get id(): number {
@@ -156,13 +157,13 @@ export function find_edges_and_nodes(...root_nodes: ConveyorNode[]) {
  */
 export function find_loopback_bottlenecks(
   root_nodes: ConveyorNode[],
-  threshold?: number | Decimal,
+  threshold?: number | Fraction,
 ): ConveyorLink[] {
   const bottlenecks: ConveyorLink[] = []
   const seen_nodes: ConveyorNode[] = []
   function _find_bottlenecks(
     curr_node: ConveyorNode,
-    threshold_: number | Decimal,
+    threshold_: number | Fraction,
   ) {
     if (!seen_nodes.includes(curr_node)) {
       seen_nodes.push(curr_node)
@@ -224,13 +225,13 @@ export function serialize(...root_nodes: ConveyorNode[]): SerializedGraph {
       return {
         src: edge.src.id,
         dst: edge.dst.id,
-        carrying: edge.carrying.toJSON(),
+        carrying: edge.carrying.toString(),
       }
     }),
     nodes: new Map(
       nodes.map((node) => [
         node.id,
-        node.holding.minus(node.sum_ins).add(node.sum_outs).toJSON(),
+        node.holding.sub(node.sum_ins).add(node.sum_outs).toString(),
       ]),
     ),
   }
@@ -239,12 +240,14 @@ export function serialize(...root_nodes: ConveyorNode[]): SerializedGraph {
 export function deserialize(graph: SerializedGraph): ConveyorNode[] {
   const nodes: Map<number, ConveyorNode> = new Map()
   graph.nodes.forEach((carrying, id) => {
-    const node = new ConveyorNode(new Decimal(carrying))
+    const node = new ConveyorNode(new Fraction(carrying))
     node.id = id
     nodes.set(id, node)
   })
   graph.edges.forEach((edge) => {
-    nodes.get(edge.src).link_to(nodes.get(edge.dst), new Decimal(edge.carrying))
+    nodes
+      .get(edge.src)
+      .link_to(nodes.get(edge.dst), new Fraction(edge.carrying))
   })
 
   return Array.from(nodes.values()).filter((node) => node.ins.length === 0)
@@ -256,7 +259,7 @@ export function even_split(
   max_split: number = 3,
 ): ConveyorNode[] {
   let near_nodes: ConveyorNode[] = []
-  let multiplier = root_node.holding.dividedBy(out_amount)
+  let multiplier = root_node.holding.div(out_amount)
 
   function _split(
     node: ConveyorNode,
@@ -295,7 +298,7 @@ export function even_split(
 
     back.push(node)
     let new_node = new ConveyorNode()
-    node.link_to(new_node, node.holding.plus(multiplier))
+    node.link_to(new_node, node.holding.add(multiplier))
     _split(new_node, into + 1, back)
   }
 
@@ -305,20 +308,20 @@ export function even_split(
 
 export function split_by_factors(
   root_node: ConveyorNode,
-  factors: Decimal[],
+  factors: Fraction[],
 ): ConveyorNode[] {
   if (factors.length === 0) {
     return [root_node]
   }
-  if (!factors[0].isInteger()) {
-    throw Error(`Factor not an integer (${factors[0]}`)
-  } else if (factors[0].lessThan(2)) {
+  if (factors[0].toFraction().includes("/")) {
+    throw Error(`Factor not an integer (${factors[0].toFraction()})`)
+  } else if (factors[0].lt(2)) {
     throw Error(`Factor must be at least \`2\` | Got ${factors[0]}`)
   }
 
   let children: ConveyorNode[] = []
   let split = root_node.split_into(factors[0])
-  for (let i = 0; factors[0].greaterThan(i); i++) {
+  for (let i = 0; factors[0].gt(i); i++) {
     let new_node = new ConveyorNode()
     root_node.link_to(new_node, split)
     children.push(new_node)
@@ -367,7 +370,7 @@ function merge(
  */
 export function smart_merge(
   end_nodes: ConveyorNode[],
-  into: Decimal[],
+  into: Fraction[],
   max_merge = 3,
 ): ConveyorNode[] {
   let ends: ConveyorNode[] = []
@@ -426,7 +429,7 @@ export function smart_merge(
   }
 
   for (let i = 0, start = 0; i < into.length; i++) {
-    let end = start + into[i].toNumber()
+    let end = start + into[i].valueOf()
     let merged = _smart_merge(end_nodes.slice(start, end))
     ends.push(merged)
     start = end
@@ -471,7 +474,7 @@ export function clean_up_graph(
         let output = curr_node.sum_outs
         let from_node = new ConveyorNode(output)
         from_node.link_to(curr_node)
-        curr_node.holding = curr_node.holding.minus(output)
+        curr_node.holding = curr_node.holding.sub(output)
 
         let starts = key_nodes.get("start")
         starts.splice(starts.indexOf(curr_node), 1)
@@ -488,9 +491,9 @@ export function clean_up_graph(
       case NodeTypes.Pass_Through:
         let src_node: ConveyorNode = curr_node.ins[0].src
         let dst_node: ConveyorNode = curr_node.outs[0].dst
-        let relink: Decimal = curr_node.ins[0].carrying
+        let relink: Fraction = curr_node.ins[0].carrying
 
-        if (!curr_node.outs[0].carrying.eq(relink)) {
+        if (!curr_node.outs[0].carrying.equals(relink)) {
           console.error(
             `${curr_node.outs[0].carrying} != ${relink}`,
             curr_node.holding,
@@ -500,13 +503,13 @@ export function clean_up_graph(
             "\n",
             curr_node.id,
           )
-          throw new Error("!curr_node.outs[0].carrying.eq(relink)")
+          throw new Error("!curr_node.outs[0].carrying.equals(relink)")
         }
 
         curr_node.ins[0].remove_link()
         curr_node.outs[0].remove_link()
 
-        if (!curr_node.sum_ins.eq(0) || !curr_node.sum_outs.eq(0)) {
+        if (!curr_node.sum_ins.equals(0) || !curr_node.sum_outs.equals(0)) {
           throw new Error("unlinked failed" + curr_node)
         }
 
@@ -528,15 +531,15 @@ export function clean_up_graph(
 
       case NodeTypes.Merge_Splitter:
         let to_node_ms: ConveyorNode = new ConveyorNode()
-        let carrying: Decimal = curr_node.sum_outs
+        let carrying: Fraction = curr_node.sum_outs
 
         for (let out_link of curr_node.outs) {
           out_link.remove_link()
           to_node_ms.link_to(out_link.dst, out_link.carrying)
         }
 
-        if (!carrying.eq(curr_node.holding)) {
-          throw new Error("!carrying.eq(curr_node.holding")
+        if (!carrying.equals(curr_node.holding)) {
+          throw new Error("!carrying.equals(curr_node.holding")
         }
 
         curr_node.link_to(to_node_ms, carrying)

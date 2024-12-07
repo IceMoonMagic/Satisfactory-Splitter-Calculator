@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import { InformationCircleIcon } from "@heroicons/vue/16/solid"
 import { ref } from "vue"
 import MachineCount from "./components/MachineCount.vue"
 import SplitEven from "./SplitEven.vue"

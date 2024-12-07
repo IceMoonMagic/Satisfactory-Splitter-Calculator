@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import Decimal from "decimal.js"
+import { Fraction } from "fraction.js"
 import { ref } from "vue"
+import { sum } from "../../math.ts"
 import InputList from "../graphInputs/InputList.vue"
 
 const props = defineProps({
@@ -16,15 +17,15 @@ const emits = defineEmits({
 async function addNode() {
   const data = values.value.filter((e) => e.gt(0))
   if (checkbox.value) {
-    props.addNode(data, [Decimal.sum(...data)])
+    props.addNode(data, [sum(...data)])
   } else {
-    props.addNode([Decimal.sum(...data)], data)
+    props.addNode([sum(...data)], data)
   }
   emits("close")
 }
 
 const checkbox = ref(true)
-const values = ref([new Decimal(0), new Decimal(-1)])
+const values = ref([new Fraction(0), new Fraction(-1)])
 </script>
 
 <template>

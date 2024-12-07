@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import Decimal from "decimal.js"
+import { Fraction } from "fraction.js"
 import { ref } from "vue"
 import {
   basic_factorized_split_finisher,
@@ -31,7 +31,7 @@ function debug_graph(
 }
 /*/
 function debug_graph(...targets: number[]) {
-  graph.value = main_split(targets.map((n) => new Decimal(n)))
+  graph.value = main_split(targets.map((n) => new Fraction(n)))
 }
 debug_graph(10)
 //*/

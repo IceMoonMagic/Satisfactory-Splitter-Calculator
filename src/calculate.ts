@@ -1,4 +1,4 @@
-import Decimal from "decimal.js"
+import { Fraction } from "fraction.js"
 import {
   clean_up_graph,
   ConveyorNode,
@@ -15,6 +15,7 @@ import {
   multisetPermutations,
   prime_factorization,
   ratio,
+  sum,
 } from "./math"
 
 interface LeafsAndMergers {
@@ -41,15 +42,15 @@ interface LeafsAndMergers {
  * @see ratio
  */
 export function step0(
-  targets: Decimal[],
-  sources?: Decimal[],
-): { sources: Decimal[]; targets: Decimal[] } {
-  const targets_total = Decimal.sum(...targets)
+  targets: Fraction[],
+  sources?: Fraction[],
+): { sources: Fraction[]; targets: Fraction[] } {
+  const targets_total = sum(...targets)
 
   sources = sources ?? [targets_total]
-  const sources_total = Decimal.sum(...sources)
+  const sources_total = sum(...sources)
 
-  if (!sources_total.eq(targets_total)) {
+  if (!sources_total.equals(targets_total)) {
     throw new Error("total_sources != total_targets")
   }
 
@@ -63,7 +64,7 @@ export function step0(
  *
  * Create a root node for each `raw_source`.
  */
-export function step1(raw_sources: Decimal[]): ConveyorNode[] {
+export function step1(raw_sources: Fraction[]): ConveyorNode[] {
   const root_nodes: ConveyorNode[] = []
   for (let holding of raw_sources) {
     root_nodes.push(new ConveyorNode(holding))
@@ -85,7 +86,7 @@ export function step1(raw_sources: Decimal[]): ConveyorNode[] {
  */
 export function step2(
   root_nodes: ConveyorNode[],
-  counts: Decimal[],
+  counts: Fraction[],
   max_split?: number,
   smaller_splits_first?: boolean,
   merge_level?: number,
@@ -108,7 +109,7 @@ export function step2(
       continue
     }
     /* [Toggle]
-    leaf_nodes.push(...even_split(spacer_node, count.toNumber(), max_split))
+    leaf_nodes.push(...even_split(spacer_node, count.valueOf(), max_split))
     /*/
     const result = factorized_split(
       spacer_node,
@@ -134,7 +135,7 @@ export function step2(
  */
 export function step3(
   leaf_nodes: ConveyorNode[],
-  targets: Decimal[],
+  targets: Fraction[],
   max_merge?: number,
   starved_mergers?: ConveyorNode[],
 ): ConveyorNode[] {
@@ -155,7 +156,7 @@ export function step3(
  * @see replace_loopback_bottleneck
  */
 export function step4(
-  threshold: Decimal = null,
+  threshold: Fraction = null,
   ...root_nodes: ConveyorNode[]
 ): void {
   if (threshold === null) return
@@ -189,9 +190,9 @@ export function step5(...root_nodes: ConveyorNode[]): void {
  * @see step5
  */
 export function main_split(
-  into: Decimal[],
+  into: Fraction[],
   max_split?: number,
-  bottleneck_threshold?: Decimal,
+  bottleneck_threshold?: Fraction,
   smaller_splits_first?: boolean,
   merge_level?: number,
 ): ConveyorNode[] {
@@ -227,11 +228,11 @@ export function main_split(
  * @see step5
  */
 export function main(
-  into: Decimal[],
-  from?: Decimal[],
+  into: Fraction[],
+  from?: Fraction[],
   max_split?: number,
   max_merge?: number,
-  bottleneck_threshold?: Decimal,
+  bottleneck_threshold?: Fraction,
   smaller_splits_first?: boolean,
   merge_level?: number,
 ): ConveyorNode[] {
@@ -263,11 +264,11 @@ export function main(
  * @see main
  */
 export function main_find_best(
-  into: Decimal[],
-  from?: Decimal[],
+  into: Fraction[],
+  from?: Fraction[],
   max_split?: number,
   max_merge?: number,
-  bottleneck_threshold?: Decimal,
+  bottleneck_threshold?: Fraction,
   smaller_splits_first?: boolean,
   merge_level?: number,
 ): ConveyorNode[] {
@@ -317,12 +318,12 @@ export function main_find_best(
  */
 export function factorized_split(
   root_node: ConveyorNode,
-  out_amount: Decimal,
+  out_amount: Fraction,
   smaller_first?: boolean,
   max_split: number = 3,
   merge_level?: number,
 ): LeafsAndMergers {
-  if (out_amount.lessThanOrEqualTo(max_split)) {
+  if (out_amount.lte(max_split)) {
     return {
       leaf_nodes: split_by_factors(root_node, [out_amount]),
       starved_mergers: [],
@@ -331,8 +332,8 @@ export function factorized_split(
 
   const splittable = find_next_multiple(out_amount, max_split)
   const splittable_factors = prime_factorization(splittable, smaller_first)
-  const total_loops = splittable.minus(out_amount)
-  const multiplier = root_node.holding.dividedBy(out_amount)
+  const total_loops = splittable.sub(out_amount)
+  const multiplier = root_node.holding.div(out_amount)
 
   if (total_loops.equals(0))
     return {
@@ -343,9 +344,9 @@ export function factorized_split(
   const merger_inputs: ConveyorNode[] = []
 
   function _factorized_split(
-    loops_: Decimal,
+    loops_: Fraction,
     curr_node: ConveyorNode,
-    splits: Decimal[],
+    splits: Fraction[],
     level: number,
   ) {
     const loops_factors = prime_factorization(loops_)
@@ -356,7 +357,7 @@ export function factorized_split(
     ) {
       // ToDo: Avoid bottleneck
       const merger_in = new ConveyorNode()
-      merger_in.link_to(curr_node, loops_.times(multiplier))
+      merger_in.link_to(curr_node, loops_.mul(multiplier))
       merger_inputs.push(merger_in)
       const spacer = new ConveyorNode()
       curr_node.link_to(spacer)
@@ -368,7 +369,7 @@ export function factorized_split(
       (result, leaf) =>
         result.concat(
           _factorized_split(
-            loops_.dividedBy(factor),
+            loops_.div(factor),
             leaf,
             splits.slice(1),
             level + 1,
@@ -407,28 +408,28 @@ export function basic_factorized_split_finisher(
   function _basic_finisher(
     curr_node: ConveyorNode,
     merger: ConveyorNode,
-    need: Decimal,
+    need: Fraction,
   ): ConveyorNode[] {
     if (need.equals(0)) return []
     if (curr_node.outs.length == 0) return [curr_node]
     const merge = []
     for (
       let out = 0;
-      out < curr_node.outs.length && need.greaterThanOrEqualTo(merge.length);
+      out < curr_node.outs.length && need.gte(merge.length);
       out++
     ) {
       merge.push(
         ..._basic_finisher(
           curr_node.outs[out].dst,
           merger,
-          need.minus(merge.length),
+          need.sub(merge.length),
         ),
       )
     }
     return merge
   }
   for (let mt of starved_mergers) {
-    const target = mt.holding.negated().dividedBy(multiplier)
+    const target = mt.holding.neg().div(multiplier)
     const merger = mt.outs[0].dst
     const merge_nodes = _basic_finisher(merger.outs[0].dst, merger, target)
     merge_nodes.forEach((node) =>

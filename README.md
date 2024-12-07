@@ -293,7 +293,7 @@ flowchart TD
 ### Outputs
 The output for Split Ratio and Split Evenly can be displayed with 
 either [Graphviz](https://www.graphviz.org/) 
-or [Mermaid](mermaid.js.org). 
+or [Mermaid](https://mermaid.js.org). 
 Both provide a rendered SVG along with the associated input text.
 Mermaid also now has an extra option of using the ELK Renderer. 
 This will give nice straight lines with right angles.
@@ -395,7 +395,7 @@ This project uses Vue 3 + TypeScript + Vite and deploys to GitHub Pages.
 ### Dependencies
 - `@heroicons/vue`: Icons
 - `@viz-js/viz`: Graphviz Renderer
-- `decimal.js`: Precise math, avoiding issues with float
+- `fraction.js`: Rational math, avoiding issues with floats
 - `js-base64`: Required for a step for sending to [Mermaid.live](https://mermaid.live)
 - `pako`: Required for a step for sending to [Mermaid.live](https://mermaid.live)
 - `vis-data`: (WIP) Interactable output graph

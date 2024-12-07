@@ -1,4 +1,4 @@
-import { Decimal } from "decimal.js"
+import { Fraction } from "fraction.js"
 import { describe, expect, test } from "vitest"
 import {
   main,
@@ -14,6 +14,7 @@ import {
   smart_merge,
   split_by_factors,
 } from "../src/ConveyorNode"
+import { sum } from "../src/math"
 import {
   get_leaves,
   is_legal_graph,
@@ -81,8 +82,8 @@ describe("Steps", () => {
       [[60, 30, 30]],
       [[2, 4, 8, 16]],
       [[1, 0.5, 0.25, 0.125, 0.0625]],
-    ])("%o", (sources: number[] | Decimal[]) => {
-      sources = sources.map((n: number | Decimal) => new Decimal(n))
+    ])("%o", (sources: number[] | Fraction[]) => {
+      sources = sources.map((n: number | Fraction) => new Fraction(n))
       const root_nodes = step1(sources)
       expect(root_nodes.length).toBe(sources.length)
       expect(root_nodes.some((node) => node.ins.length != 0)).toBeFalsy()
@@ -95,15 +96,15 @@ describe("Steps", () => {
     test.each([2, 3, 4, 5, 6, 7, 8, 9, 13, 15, 32, 60])(
       "%i",
       (amount: number) => {
-        let root_node = new ConveyorNode(new Decimal(amount))
+        let root_node = new ConveyorNode(new Fraction(amount))
         let spacer = new ConveyorNode()
         root_node.link_to(spacer)
-        const result = step2([spacer], [new Decimal(amount)])
+        const result = step2([spacer], [new Fraction(amount)])
         expect(is_legal_graph(root_node)).toBeTruthy()
-        const starved_sum = Decimal.sum(
+        const starved_sum = sum(
           ...result.starved_mergers.map((node) => node.holding),
           0,
-        ).toNumber()
+        ).valueOf()
         let leaves = get_leaves(root_node)
         expect(to_check_able(result.leaf_nodes)).toEqual(to_check_able(leaves))
         expect(starved_sum).toBeLessThanOrEqual(0)
@@ -138,14 +139,14 @@ describe("Steps", () => {
       ],
       [[2, 3], [[1, 1, 1, 1, 1, 1]]],
     ])("%o => %o", (splits: number[], into: number[][]) => {
-      const splits_d = splits.map((n) => new Decimal(n))
+      const splits_d = splits.map((n) => new Fraction(n))
       const into_d = into.map((na: number[]) =>
-        na.map((n: number) => new Decimal(n)),
+        na.map((n: number) => new Fraction(n)),
       )
       // return
-      describe.each([into_d])("Into", (_into: Decimal[]) => {
+      describe.each([into_d])("Into", (_into: Fraction[]) => {
         test.each([2, 3, 4, 5, 7])("Merge %d", (max_merge: number) => {
-          let root_node = new ConveyorNode(Decimal.sum(..._into))
+          let root_node = new ConveyorNode(sum(..._into))
           let spacer_node = new ConveyorNode()
           root_node.link_to(spacer_node)
           let split_nodes = split_by_factors(spacer_node, splits_d)
@@ -172,8 +173,8 @@ describe("Ratio", () => {
     [[525, 525, 525, 525],[1050, 1050]], // Issue #8
     [[75], [15, 15, 15, 15, 15]]
   ])("%o => %o", (sources: number[], targets: number[]) => {
-    const _sources = sources.map((n) => new Decimal(n))
-    const _targets = targets.map((n) => new Decimal(n))
+    const _sources = sources.map((n) => new Fraction(n))
+    const _targets = targets.map((n) => new Fraction(n))
     const root_nodes = main(_targets, _sources, 3, 3, undefined)
     const leaf_nodes = get_leaves(...root_nodes)
 
@@ -194,7 +195,7 @@ describe("Even Split", () => {
     [[30, 15, 15]],
     [[1050, 1050]],
   ])("%o", (targets: number[]) => {
-    const _targets = targets.map((n) => new Decimal(n))
+    const _targets = targets.map((n) => new Fraction(n))
     const root_nodes = main_split(_targets, 3, undefined)
     const leaf_nodes = get_leaves(...root_nodes)
 
@@ -203,7 +204,7 @@ describe("Even Split", () => {
     // prettier-ignore
     expect(new Set(root_nodes.map((node) => node.sum_outs)))
     .toEqual(new Set(_targets))
-    expect(leaf_nodes.length).toBe(Decimal.sum(...targets).toNumber())
+    expect(leaf_nodes.length).toBe(sum(...targets).valueOf())
     expect(leaf_nodes.some((node) => !node.holding.equals(1))).toBeFalsy()
   })
 })
@@ -212,7 +213,7 @@ describe("Factorized Split", () => {
   test.each([2 ** 6, 2 ** 8, 3 ** 4, 3 ** 5, 60, 120, 480, 780, 1200])(
     "%d",
     (target: number) => {
-      const _target = new Decimal(target)
+      const _target = new Fraction(target)
       const root_node = new ConveyorNode(_target)
       const { leaf_nodes: leaf_nodes, starved_mergers } = factorized_split(
         root_node,
@@ -222,10 +223,7 @@ describe("Factorized Split", () => {
       expect(is_legal_graph(root_node, ...starved_mergers)).toBeTruthy()
 
       expect(
-        Decimal.sum(
-          leaf_nodes.length,
-          ...starved_mergers.map((node) => node.holding),
-        ),
+        sum(leaf_nodes.length, ...starved_mergers.map((node) => node.holding)),
       ).toEqual(_target)
       expect(leaf_nodes.length).toBe(get_leaves(root_node).length)
       expect(leaf_nodes.some((node) => !node.holding.equals(1))).toBeFalsy()
@@ -237,7 +235,7 @@ describe("Simple Prime Split Finisher", () => {
   test.each([2 ** 6, 2 ** 8, 3 ** 4, 3 ** 5, 60, 120, 480, 780, 1200])(
     "%d",
     (target: number) => {
-      const _target = new Decimal(target)
+      const _target = new Fraction(target)
       const root_node = new ConveyorNode(_target)
       const { leaf_nodes: _leaf_nodes, starved_mergers } = factorized_split(
         root_node,
