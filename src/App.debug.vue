@@ -8,6 +8,7 @@ import {
 } from "./calculate.ts"
 import GraphView from "./components/graphOutputs/GraphView.vue"
 import { clean_up_graph, ConveyorNode } from "./ConveyorNode.ts"
+import { foo } from "./partitioning.ts"
 
 const graph = ref([])
 /* [Toggle]
@@ -38,8 +39,14 @@ debug_graph(10)
 
 // @ts-ignore
 window.debug_graph = debug_graph
+console.log(
+  foo(
+    [new Fraction(6)],
+    [[new Fraction(2), new Fraction(3)]],
+    [new Fraction(1), new Fraction(2), new Fraction(3)],
+  ),
+)
 </script>
 
-<template>
-  <GraphView :graph="graph as ConveyorNode[]" />
-</template>
+<template> <GraphView :graph="graph as ConveyorNode[]" /> </template>
+
