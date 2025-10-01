@@ -68,8 +68,7 @@ function* splitIterator(
   inputs: Fraction[],
   splits: Fraction[][],
 ): Generator<Fraction[]> {
-  // ToDo: Deduplicate / avoid duplicate outputs
-  // ToDo: Include "complexity" as part of output
+  // ToDo: Include "complexity" and loopback as part of output
 
   // Edge Case | Bad inputs
   if (
@@ -88,10 +87,11 @@ function* splitIterator(
     // Recursive Case
     else {
       yield inputs.slice()
-      let baseValue = inputs[0].div(splits[0][0])
-      let newInputs = new Array(splits[0][0].valueOf()).fill(baseValue)
-      let newSplits = new Array(splits[0][0].valueOf()).fill(splits[0].slice(1))
-      for (let split of splitIterator(newInputs, newSplits)) {
+      for (let split of splitIteratorEqual(
+        inputs[0].div(splits[0][0]),
+        splits[0].slice(1),
+        splits[0][0].valueOf(),
+      )) {
         yield split
       }
     }
@@ -109,6 +109,47 @@ function* splitIterator(
   }
 }
 
+function* splitIteratorEqual(
+  input: Fraction,
+  splits: Fraction[],
+  repeat: number,
+): Generator<Fraction[]> {
+  // Edge Case | Bad inputs
+  if (
+    input == undefined ||
+    splits == undefined ||
+    repeat == undefined ||
+    !Number.isInteger(repeat) ||
+    repeat < 0
+  ) {
+    yield undefined
+  }
+
+  // Breadth Recursive Case
+  if (repeat > 1) {
+    for (let result of splitIteratorEqual(input, splits, repeat - 1)) {
+      yield [input].concat(result)
+    }
+  } else {
+    yield [input]
+  }
+
+  // Base Case | No more splits
+  if (splits.length === 0) {
+    return
+  }
+
+  // Depth Recursive
+  // ToDo: Try with *every* factor (use mulitsets to avoid dupes)
+  for (let result of splitIteratorEqual(
+    input.div(splits[0]),
+    splits.slice(1),
+    splits[0].mul(repeat).valueOf(),
+  )) {
+    yield result
+  }
+}
+
 export function foo(
   inputs: Fraction[],
   splits: Fraction[][],
@@ -118,4 +159,11 @@ export function foo(
   for (let split of splitIterator(inputs, splits)) {
     console.log(split, partition(split, outputs))
   }
+
+  // const foo = new Fraction(3),
+  //   bar = [new Fraction(3)]
+  // console.log(foo, bar)
+  // for (let resutl of splitIteratorEqual(foo, bar, 2)) {
+  //   console.log(resutl)
+  // }
 }
