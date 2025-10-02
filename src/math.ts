@@ -30,6 +30,36 @@ function toMultiset(items: Fraction[]): MultiSet {
   )
 }
 
+export function countCombinations(items: Fraction[], size: number): Fraction {
+  // C = (n!) / (r! * (n - 1)!)
+  const n = factorial(items.length)
+  const r = factorial(size)
+  const n1 = factorial(items.length - 1)
+  return n.div(r.mul(n1))
+}
+
+export function* combinations(
+  items: Fraction[],
+  size: number,
+): Generator<Fraction[]> {
+  if (size > items.length || size < 0) {
+    return
+  } else if (size == items.length) {
+    yield items.slice()
+    return
+  }
+  for (let result of combinations(items.slice(1), size - 1)) {
+    yield [items[0]].concat(result)
+  }
+  for (let result of combinations(items.slice(1), size)) {
+    yield result
+  }
+}
+
+export function* _multisetCombinations(
+  items: MultiSet,
+): Generator<Fraction[]> {}
+
 /**
  * Counts the unique permutations of `items`
  * @param items
