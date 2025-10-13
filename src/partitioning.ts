@@ -64,6 +64,29 @@ export function partition(
 //   return true
 // }
 
+function* mergeIterator(inputs: Fraction[]): Generator<Fraction[]> {
+  // Edge Case | Bad Input
+  if (inputs == undefined || inputs.length === 0) {
+    return
+  }
+
+  // Base Case | 1 Input
+  if (inputs.length === 1) {
+    yield inputs.slice()
+    return
+  }
+
+  // Recursive Case
+  yield inputs.slice()
+  for (let i in inputs.slice(1)) {
+    let combo = inputs.slice(1)
+    combo[i] = combo[i].add(inputs[0])
+    for (let result of mergeIterator(combo)) {
+      yield result
+    }
+  }
+}
+
 function* splitIterator(
   inputs: Fraction[],
   splits: Fraction[][],
@@ -76,7 +99,7 @@ function* splitIterator(
     splits == undefined ||
     inputs.length !== splits.length
   ) {
-    yield undefined
+    return
   }
   // Recursive & Base Case | 1 input to split
   else if (inputs.length === 1) {
@@ -122,7 +145,7 @@ function* splitIteratorEqual(
     !Number.isInteger(repeat) ||
     repeat < 0
   ) {
-    yield undefined
+    return
   }
 
   // Breadth Recursive Case
