@@ -1,6 +1,87 @@
 import { Fraction } from "fraction.js"
 
-type MultiSet = Map<string, number>
+export class MultiSet extends Map<string, number> {
+  public get(key: string | Fraction): number {
+    key = this.convertKey(key)
+    return super.get(key) || 0
+  }
+
+  public set(key: string | Fraction, value: number) {
+    key = this.convertKey(key)
+    return super.set(key, Math.max(Math.round(value), 0))
+  }
+
+  public increment(key: string | Fraction, amount: number = 1) {
+    key = this.convertKey(key)
+    return this.set(key, this.get(key) + amount)
+  }
+
+  public decrement(key: string | Fraction, amount: number = 1) {
+    return this.increment(key, -amount)
+  }
+
+  private convertKey(key: string | Fraction) {
+    if (key instanceof Fraction) {
+      return key.toFraction()
+    }
+    return key
+  }
+
+  public totalCount(): number {
+    return Array.from(this.values()).reduce((total, count) => total + count, 0)
+  }
+
+  public *elements(): Generator<Fraction> {
+    for (let [value, count] of this.entries()) {
+      for (let i = 0; i < count; i += 1) {
+        yield new Fraction(value)
+      }
+    }
+  }
+
+  public clone(): MultiSet {
+    return new MultiSet(this)
+  }
+
+  public *permutations(): Generator<Fraction[]> {
+    let items = this.clone()
+    // Edge Case
+    if (items == undefined) {
+      yield undefined
+    }
+    // Edge Case | 1 item -> 1 permutation
+    else if (items.size == 1) {
+      const [item, count] = items.entries().next().value as [string, number]
+      yield Array<Fraction>(count).fill(new Fraction(item))
+    }
+    // Base Case | All item counts == 0
+    else if (
+      Array.from(items.values()).find((count) => count != 0) === undefined
+    ) {
+      yield []
+    }
+    // Recursive Case
+    else {
+      for (let [item, count] of items) {
+        if (count == 0) {
+          continue
+        }
+        items.decrement(item) // Probably easier than making new Map
+        for (let foo of items.permutations()) {
+          yield foo.concat(new Fraction(item))
+        }
+        items.increment(item)
+      }
+    }
+  }
+
+  static fromArray(items: Fraction[]): MultiSet {
+    return items.reduce<MultiSet>(
+      (set, item) => set.increment(item),
+      new MultiSet(),
+    )
+  }
+}
 
 export function sum(...items: Array<number | Fraction>): Fraction {
   return items.reduce<Fraction>((_sum, item) => _sum.add(item), new Fraction(0))
@@ -20,14 +101,6 @@ function factorial(n: number): Fraction {
     fact = fact.mul(i)
   }
   return fact
-}
-
-function toMultiset(items: Fraction[]): MultiSet {
-  return items.reduce<MultiSet>(
-    (set, item) =>
-      set.set(item.toFraction(), (set.get(item.toString()) || 0) + 1),
-    new Map<string, number>(),
-  )
 }
 
 export function countCombinations(items: Fraction[], size: number): Fraction {
@@ -68,7 +141,7 @@ export function countMultisetPermutations(items: Fraction[]): Fraction {
   // P = n! / (k1! * k2! * ... * km!)
   let n = factorial(items.length)
   let k = new Fraction(1)
-  toMultiset(items).forEach((count) => (k = k.mul(factorial(count))))
+  MultiSet.fromArray(items).forEach((count) => (k = k.mul(factorial(count))))
   return n.div(k)
 }
 
@@ -77,38 +150,7 @@ export function countMultisetPermutations(items: Fraction[]): Fraction {
  * @param items
  */
 export function multisetPermutations(items: Fraction[]): Generator<Fraction[]> {
-  return _multisetPermutations(toMultiset(items))
-}
-
-function* _multisetPermutations(items: MultiSet): Generator<Fraction[]> {
-  // Edge Case
-  if (items == undefined) {
-    yield undefined
-  }
-  // Edge Case | 1 item -> 1 permutation
-  else if (items.size == 1) {
-    const [item, count] = items.entries().next().value as [string, number]
-    yield Array<Fraction>(count).fill(new Fraction(item))
-  }
-  // Base Case | All item counts == 0
-  else if (
-    Array.from(items.values()).find((count) => count != 0) === undefined
-  ) {
-    yield []
-  }
-  // Recursive Case
-  else {
-    for (let [item, count] of items) {
-      if (count == 0) {
-        continue
-      }
-      items.set(item, count - 1) // Probably easier than making new Map
-      for (let foo of _multisetPermutations(items)) {
-        yield foo.concat(new Fraction(item))
-      }
-      items.set(item, count)
-    }
-  }
+  return MultiSet.fromArray(items).permutations()
 }
 
 const found_primes: Fraction[] = [new Fraction(2)] // Basic memoization
@@ -255,7 +297,7 @@ if (import.meta.vitest) {
       expect(factorial(n)).toEqual(new Fraction(result)),
     ))
 
-  describe("toMultiset", () =>
+  describe("MultiSet.fromArray", () =>
     test.each([
       [[1, 1, 1], [[1, 3]]],
       [
@@ -267,8 +309,8 @@ if (import.meta.vitest) {
         ],
       ],
     ])("%o -> %o", (items: number[], result: number[][]) =>
-      expect(toMultiset(to_decimals(...items))).toEqual(
-        new Map(result.map((r) => [r[0].toString(), r[1]])),
+      expect(MultiSet.fromArray(to_decimals(...items))).toEqual(
+        new MultiSet(result.map((r) => [r[0].toString(), r[1]])),
       ),
     ))
 
